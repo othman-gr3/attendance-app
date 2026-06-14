@@ -1,0 +1,19 @@
+### Register
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "nom": "Othmane",
+  "email": "othmane@test.com",
+  "password": "123456",
+  "role": "ROLE_ADMIN"
+}
+
+### Login
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "othmane@test.com",
+  "password": "123456"
+}

@@ -3,17 +3,44 @@ POST http://localhost:8080/api/auth/register
 Content-Type: application/json
 
 {
-  "nom": "Othmane",
-  "email": "othmane@test.com",
+  "nom": "hiba",
+  "email": "hiba@test.com",
   "password": "123456",
   "role": "ROLE_ADMIN"
 }
 
-### Login
+### Login first to get token
 POST http://localhost:8080/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "othmane@test.com",
+  "email": "hiba@test.com",
   "password": "123456"
 }
+
+###
+
+### Test check-in (paste your token below)
+POST http://localhost:8080/api/pointage
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJoaWJhQHRlc3QuY29tIiwicm9sZSI6IlJPTEVfQURNSU4iLCJpYXQiOjE3ODE1NDE3MjAsImV4cCI6MTc4MTYyODEyMH0.0wJdGYFd0jVI92AfXNSBkdn8Ohgl1dq2MYu_9x_465KiVI5pTMQxorYdnbGS8LZz
+
+{
+  "userId": "6a302b48ab99c245999cbc53",
+  "type": "entree",
+  "latitude": 33.5731,
+  "longitude": -7.5898,
+  "qrCode": "test123"
+}
+
+###
+
+### Get QR code (admin only)
+GET http://localhost:8080/api/pointage/qr
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJoaWJhQHRlc3QuY29tIiwicm9sZSI6IlJPTEVfQURNSU4iLCJpYXQiOjE3ODE1NDE3MjAsImV4cCI6MTc4MTYyODEyMH0.0wJdGYFd0jVI92AfXNSBkdn8Ohgl1dq2MYu_9x_465KiVI5pTMQxorYdnbGS8LZz
+
+###
+
+### Get pointages for a user
+GET http://localhost:8080/api/pointage?userId=PASTE_USER_ID_HERE
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJoaWJhQHRlc3QuY29tIiwicm9sZSI6IlJPTEVfQURNSU4iLCJpYXQiOjE3ODE1NDE3MjAsImV4cCI6MTc4MTYyODEyMH0.0wJdGYFd0jVI92AfXNSBkdn8Ohgl1dq2MYu_9x_465KiVI5pTMQxorYdnbGS8LZz

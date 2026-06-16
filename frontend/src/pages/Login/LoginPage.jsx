@@ -1,8 +1,17 @@
 import React, { useState } from 'react';
+import {
+    Box, Card, CardContent, TextField, Button,
+    Typography, Alert, CircularProgress,
+    InputAdornment, IconButton, Divider
+} from '@mui/material';
+import {
+    Visibility, VisibilityOff, BusinessCenter
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import api from '../../api/axios';
-import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
+
+const PRIMARY = '#0F2942';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -21,9 +30,9 @@ export default function LoginPage() {
             const res = await api.post('/auth/login', { email, password });
             login(res.data);
             if (res.data.role === 'ROLE_ADMIN') {
-                navigate('/dashboard');
+                navigate('/admin/employees');
             } else {
-                navigate('/leave');
+                navigate('/checkin');
             }
         } catch (err) {
             setError(err.response?.data?.error || 'Invalid email or password');
@@ -32,221 +41,165 @@ export default function LoginPage() {
         }
     };
 
-    const pageStyle = {
-        minHeight: '100vh',
-        backgroundColor: '#F5F6FA',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px',
-        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-    };
-
-    const cardStyle = {
-        backgroundColor: '#FFFFFF',
-        borderRadius: '16px',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-        padding: '40px',
-        maxWidth: '420px',
-        width: '100%',
-    };
-
-    const headerStyle = {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        marginBottom: '32px',
-    };
-
-    const iconStyle = {
-        fontSize: '40px',
-        color: '#1976D2',
-        marginBottom: '16px',
-    };
-
-    const titleStyle = {
-        fontSize: '24px',
-        fontWeight: '700',
-        color: '#1a2340',
-        margin: '0 0 8px 0',
-        textAlign: 'center',
-    };
-
-    const subtitleStyle = {
-        fontSize: '14px',
-        color: '#888888',
-        margin: '0',
-        textAlign: 'center',
-    };
-
-    const dividerStyle = {
-        height: '1px',
-        backgroundColor: '#E0E0E0',
-        margin: '24px 0 24px 0',
-    };
-
-    const formStyle = {
-        display: 'flex',
-        flexDirection: 'column',
-    };
-
-    const labelStyle = {
-        fontSize: '14px',
-        fontWeight: '500',
-        color: '#1a2340',
-        marginBottom: '6px',
-    };
-
-    const inputWrapperStyle = {
-        position: 'relative',
-        marginBottom: '20px',
-    };
-
-    const inputStyle = {
-        width: '100%',
-        padding: '12px 16px',
-        fontSize: '15px',
-        border: '1px solid #E0E0E0',
-        borderRadius: '8px',
-        outline: 'none',
-        fontFamily: 'inherit',
-        boxSizing: 'border-box',
-        transition: 'border-color 0.2s ease',
-    };
-
-    const buttonStyle = {
-        width: '100%',
-        padding: '14px',
-        marginTop: '24px',
-        backgroundColor: '#1976D2',
-        color: '#FFFFFF',
-        fontSize: '15px',
-        fontWeight: '600',
-        border: 'none',
-        borderRadius: '8px',
-        cursor: 'pointer',
-        transition: 'background-color 0.2s ease',
-    };
-
-    const errorStyle = {
-        backgroundColor: '#FFEBEE',
-        color: '#D32F2F',
-        padding: '12px 16px',
-        borderRadius: '8px',
-        fontSize: '13px',
-        marginBottom: '24px',
-        textAlign: 'center',
-    };
-
-    const footerStyle = {
-        fontSize: '12px',
-        color: '#AAAAAA',
-        textAlign: 'center',
-        marginTop: '24px',
-    };
-
     return (
-        <div style={pageStyle}>
-            <div style={cardStyle}>
-                {/* Header */}
-                <div style={headerStyle}>
-                    <BusinessCenterIcon style={iconStyle} />
-                    <h1 style={titleStyle}>Attendance App</h1>
-                    <p style={subtitleStyle}>Sign in to your account</p>
-                </div>
+        <Box sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            background: '#F4F6F8',
+        }}>
+            {/* Left panel */}
+            <Box sx={{
+                width: { xs: 0, md: '45%' },
+                background: `linear-gradient(160deg, ${PRIMARY} 0%, #1A4A6B 100%)`,
+                display: { xs: 'none', md: 'flex' },
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                p: 6,
+            }}>
+                <BusinessCenter sx={{ fontSize: 64, color: '#E8E0D0', mb: 3 }} />
+                <Typography variant="h4" fontWeight={700} color="white" textAlign="center">
+                    Attendance Management
+                </Typography>
+                <Typography variant="body1" color="#A0B4C8" textAlign="center" mt={2}>
+                    Track presence, manage leave requests and monitor your team in real time.
+                </Typography>
 
-                <div style={dividerStyle}></div>
+                {/* Stats */}
+                <Box sx={{ mt: 6, display: 'flex', gap: 4 }}>
+                    {[
+                        { label: 'Employees', value: '100+' },
+                        { label: 'Accuracy', value: '99%' },
+                        { label: 'Uptime', value: '24/7' },
+                    ].map((stat) => (
+                        <Box key={stat.label} sx={{ textAlign: 'center' }}>
+                            <Typography variant="h5" fontWeight={700} color="white">
+                                {stat.value}
+                            </Typography>
+                            <Typography variant="caption" color="#A0B4C8">
+                                {stat.label}
+                            </Typography>
+                        </Box>
+                    ))}
+                </Box>
+            </Box>
 
-                {/* Error Message */}
-                {error && <div style={errorStyle}>{error}</div>}
+            {/* Right panel — form */}
+            <Box sx={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                p: 3,
+            }}>
+                <Card sx={{
+                    width: '100%',
+                    maxWidth: 420,
+                    borderRadius: 3,
+                    p: 1,
+                }}>
+                    <CardContent sx={{ p: 4 }}>
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} style={formStyle}>
-                    <div style={inputWrapperStyle}>
-                        <label style={labelStyle}>Email Address</label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            placeholder="you@company.com"
-                            style={inputStyle}
-                            onFocus={(e) => {
-                                e.target.style.borderColor = '#1976D2';
-                                e.target.style.borderWidth = '2px';
-                                e.target.style.padding = '12px 15px';
-                            }}
-                            onBlur={(e) => {
-                                e.target.style.borderColor = '#E0E0E0';
-                                e.target.style.borderWidth = '1px';
-                                e.target.style.padding = '12px 16px';
-                            }}
-                        />
-                    </div>
+                        {/* Header */}
+                        <Box sx={{ mb: 4 }}>
+                            <Typography variant="h5" color={PRIMARY} gutterBottom>
+                                Welcome back
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Sign in to access your dashboard
+                            </Typography>
+                        </Box>
 
-                    <div style={inputWrapperStyle}>
-                        <label style={labelStyle}>Password</label>
-                        <div style={{ position: 'relative' }}>
-                            <input
+                        <Divider sx={{ mb: 4 }} />
+
+                        {/* Error */}
+                        {error && (
+                            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+                                {error}
+                            </Alert>
+                        )}
+
+                        {/* Form */}
+                        <Box component="form" onSubmit={handleSubmit}>
+                            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                EMAIL ADDRESS
+                            </Typography>
+                            <TextField
+                                fullWidth
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                size="small"
+                                sx={{ mt: 0.5, mb: 3 }}
+                                placeholder="you@company.com"
+                            />
+
+                            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                PASSWORD
+                            </Typography>
+                            <TextField
+                                fullWidth
                                 type={showPassword ? 'text' : 'password'}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
+                                size="small"
+                                sx={{ mt: 0.5, mb: 4 }}
                                 placeholder="••••••••"
-                                style={{ ...inputStyle, paddingRight: '40px' }}
-                                onFocus={(e) => {
-                                    e.target.style.borderColor = '#1976D2';
-                                    e.target.style.borderWidth = '2px';
-                                    e.target.style.padding = '12px 40px 12px 15px';
-                                }}
-                                onBlur={(e) => {
-                                    e.target.style.borderColor = '#E0E0E0';
-                                    e.target.style.borderWidth = '1px';
-                                    e.target.style.padding = '12px 40px 12px 16px';
+                                slotProps={{
+                                    input: {
+                                        endAdornment: (
+                                            <InputAdornment position="end">
+                                                <IconButton
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    edge="end"
+                                                    size="small"
+                                                >
+                                                    {showPassword
+                                                        ? <VisibilityOff fontSize="small" />
+                                                        : <Visibility fontSize="small" />}
+                                                </IconButton>
+                                            </InputAdornment>
+                                        )
+                                    }
                                 }}
                             />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                style={{
-                                    position: 'absolute',
-                                    right: '12px',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    color: '#888888',
-                                    fontSize: '18px',
+
+                            <Button
+                                fullWidth
+                                type="submit"
+                                variant="contained"
+                                size="large"
+                                disabled={loading}
+                                sx={{
+                                    py: 1.5,
+                                    fontSize: 15,
+                                    background: `linear-gradient(135deg, ${PRIMARY}, #1A4A6B)`,
+                                    '&:hover': {
+                                        background: `linear-gradient(135deg, #1A4A6B, ${PRIMARY})`,
+                                    },
                                 }}
                             >
-                                {showPassword ? '👁️' : '👁️‍🗨️'}
-                            </button>
-                        </div>
-                    </div>
+                                {loading
+                                    ? <CircularProgress size={22} color="inherit" />
+                                    : 'Sign In'}
+                            </Button>
+                        </Box>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        style={{
-                            ...buttonStyle,
-                            opacity: loading ? 0.7 : 1,
-                            cursor: loading ? 'not-allowed' : 'pointer',
-                        }}
-                        onMouseEnter={(e) => {
-                            if (!loading) e.target.style.backgroundColor = '#1565C0';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = '#1976D2';
-                        }}
-                    >
-                        {loading ? 'Signing in...' : 'Sign In'}
-                    </button>
-                </form>
+                        <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            display="block"
+                            textAlign="center"
+                            mt={3}
+                        >
+                            © 2026 Attendance App — All rights reserved
+                        </Typography>
 
-                {/* Footer */}
-                <div style={footerStyle}>© 2026 Attendance App — All rights reserved</div>
-            </div>
-        </div>
+                    </CardContent>
+                </Card>
+            </Box>
+        </Box>
     );
 }

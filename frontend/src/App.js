@@ -3,14 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { AuthProvider } from './auth/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import Sidebar from './components/Sidebar';
 import LoginPage from './pages/Login/LoginPage';
 import RegisterPage from './pages/Register/RegisterPage';
 import EmployeeListPage from './pages/Admin/EmployeeListPage';
-import LeaveRequestForm from './pages/Leave/LeaveRequestForm';
-import AdminLeaveApproval from './pages/Leave/AdminLeaveApproval';
-import DashboardPage from './pages/Dashboard/DashboardPage';
-import AnomalyReport from './pages/Dashboard/AnomalyReport';
 
 const theme = createTheme({
   palette: {
@@ -74,42 +69,11 @@ export default function App() {
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              
               <Route path="/admin/employees" element={
                 <ProtectedRoute role="ROLE_ADMIN">
-                  <Sidebar />
                   <EmployeeListPage />
                 </ProtectedRoute>
               } />
-
-              <Route path="/leave" element={
-                <ProtectedRoute>
-                  <Sidebar />
-                  <LeaveRequestForm />
-                </ProtectedRoute>
-              } />
-
-              <Route path="/admin/leaves" element={
-                <ProtectedRoute role="ROLE_ADMIN">
-                  <Sidebar />
-                  <AdminLeaveApproval />
-                </ProtectedRoute>
-              } />
-
-              <Route path="/dashboard" element={
-                <ProtectedRoute role="ROLE_ADMIN">
-                  <Sidebar />
-                  <DashboardPage />
-                </ProtectedRoute>
-              } />
-
-              <Route path="/admin/anomalies" element={
-                <ProtectedRoute role="ROLE_ADMIN">
-                  <Sidebar />
-                  <AnomalyReport />
-                </ProtectedRoute>
-              } />
-
               <Route path="*" element={<Navigate to="/login" />} />
             </Routes>
           </BrowserRouter>

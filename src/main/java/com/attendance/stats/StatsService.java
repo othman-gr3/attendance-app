@@ -190,7 +190,9 @@ public class StatsService {
     public List<AllStatsResponse> getAllStats(int month, int year) {
         List<AllStatsResponse> allStats = new ArrayList<>();
 
-        List<User> users = userRepository.findAll();
+        List<User> users = userRepository.findAll().stream()
+                .filter(u -> "ROLE_EMPLOYE".equals(u.getRole()))
+                .collect(Collectors.toList());
 
         for (User user : users) {
             StatsResponse stats = computeStats(user.getId(), month, year);

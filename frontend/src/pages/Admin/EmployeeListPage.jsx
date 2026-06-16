@@ -5,10 +5,11 @@ import {
     Chip, IconButton, CircularProgress, Alert,
     Avatar, Tooltip, Button, Dialog, DialogTitle,
     DialogContent, DialogActions, TextField, MenuItem,
-    InputAdornment
+    InputAdornment, Drawer, Divider
 } from '@mui/material';
 import {
-    Delete, Person, PersonAdd, Visibility, VisibilityOff
+    Delete, Person, PersonAdd, Visibility, VisibilityOff,
+    Close, Email, Badge, Key
 } from '@mui/icons-material';
 import api from '../../api/axios';
 import Navbar from '../../components/Navbar';
@@ -32,6 +33,10 @@ export default function EmployeeListPage() {
     const [formLoading, setFormLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
+    // Drawer state
+    const [selectedEmployee, setSelectedEmployee] = useState(null);
+    const [openDrawer, setOpenDrawer] = useState(false);
+
     const fetchEmployees = async () => {
         try {
             const res = await api.get('/users');
@@ -43,12 +48,19 @@ export default function EmployeeListPage() {
         }
     };
 
-    const handleDelete = async (id) => {
+    const handleRowClick = (emp) => {
+        setSelectedEmployee(emp);
+        setOpenDrawer(true);
+    };
+
+    const handleDelete = async (id, e) => {
+        e.stopPropagation();
         if (!window.confirm('Delete this employee?')) return;
         try {
             await api.delete(`/users/${id}`);
             setEmployees(employees.filter(e => e.id !== id));
             setSuccess('Employee deleted successfully');
+            if (selectedEmployee?.id === id) setOpenDrawer(false);
             setTimeout(() => setSuccess(''), 3000);
         } catch {
             setError('Failed to delete employee');
@@ -97,7 +109,7 @@ export default function EmployeeListPage() {
                             Employee Management
                         </Typography>
                         <Typography variant="body2" color="text.secondary" mt={0.5}>
-                            Manage your team members and their roles
+                            Click on any employee to view details
                         </Typography>
                     </Box>
                     <Button
@@ -185,7 +197,17 @@ export default function EmployeeListPage() {
                                         </TableRow>
                                     ) : (
                                         employees.map((emp) => (
-                                            <TableRow key={emp.id} hover>
+                                            <TableRow
+                                                key={emp.id}
+                                                hover
+                                                onClick={() => handleRowClick(emp)}
+                                                sx={{
+                                                    cursor: 'pointer',
+                                                    background: selectedEmployee?.id === emp.id
+                                                        ? '#EEF2FF' : 'inherit',
+                                                    '&:hover': { background: '#F0F4FF' }
+                                                }}
+                                            >
                                                 <TableCell>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                                         <Avatar sx={{
@@ -220,7 +242,7 @@ export default function EmployeeListPage() {
                                                     <Tooltip title="Delete employee">
                                                         <IconButton
                                                             size="small"
-                                                            onClick={() => handleDelete(emp.id)}
+                                                            onClick={(e) => handleDelete(emp.id, e)}
                                                             sx={{
                                                                 color: '#9B2335',
                                                                 '&:hover': { background: '#FFF0F0' }
@@ -240,10 +262,145 @@ export default function EmployeeListPage() {
                 </Card>
             </Box>
 
+            {/* Employee Details Drawer */}
+            <Drawer
+                anchor="right"
+                open={openDrawer}
+                onClose={() => setOpenDrawer(false)}
+                PaperProps={{
+                    sx: { width: 360, p: 0 }
+                }}
+            >
+                {selectedEmployee && (
+                    <Box>
+                        {/* Drawer Header */}
+                        <Box sx={{
+                            background: `linear-gradient(135deg, ${PRIMARY}, #1A4A6B)`,
+                            p: 3, color: 'white'
+                        }}>
+                            <Box sx={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center', mb: 3
+                            }}>
+                                <Typography variant="h6" fontWeight={700}>
+                                    Employee Details
+                                </Typography>
+                                <IconButton
+                                    onClick={() => setOpenDrawer(false)}
+                                    sx={{ color: 'white' }}
+                                    size="small"
+                                >
+                                    <Close />
+                                </IconButton>
+                            </Box>
+
+                            {/* Avatar */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Avatar sx={{
+                                    width: 60, height: 60,
+                                    bgcolor: 'rgba(255,255,255,0.2)',
+                                    fontSize: 24, fontWeight: 700,
+                                    border: '2px solid rgba(255,255,255,0.4)'
+                                }}>
+                                    {selectedEmployee.nom?.charAt(0).toUpperCase()}
+                                </Avatar>
+                                <Box>
+                                    <Typography variant="h6" fontWeight={700}>
+                                        {selectedEmployee.nom}
+                                    </Typography>
+                                    <Chip
+                                        label={selectedEmployee.role === 'ROLE_ADMIN' ? 'Admin' : 'Employee'}
+                                        size="small"
+                                        sx={{
+                                            background: 'rgba(255,255,255,0.2)',
+                                            color: 'white',
+                                            fontWeight: 600,
+                                            fontSize: 11, mt: 0.5
+                                        }}
+                                    />
+                                </Box>
+                            </Box>
+                        </Box>
+
+                        {/* Drawer Content */}
+                        <Box sx={{ p: 3 }}>
+
+                            {/* Info items */}
+                            {[
+                                {
+                                    icon: <Email fontSize="small" />,
+                                    label: 'Email Address',
+                                    value: selectedEmployee.email
+                                },
+                                {
+                                    icon: <Badge fontSize="small" />,
+                                    label: 'Role',
+                                    value: selectedEmployee.role === 'ROLE_ADMIN' ? 'Administrator' : 'Employee'
+                                },
+                                {
+                                    icon: <Key fontSize="small" />,
+                                    label: 'User ID',
+                                    value: selectedEmployee.id,
+                                    mono: true
+                                },
+                            ].map((item) => (
+                                <Box key={item.label} sx={{ mb: 3 }}>
+                                    <Box sx={{
+                                        display: 'flex', alignItems: 'center',
+                                        gap: 1, mb: 0.5, color: '#4A5568'
+                                    }}>
+                                        {item.icon}
+                                        <Typography variant="caption" fontWeight={600}
+                                                    sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                            {item.label}
+                                        </Typography>
+                                    </Box>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            fontFamily: item.mono ? 'monospace' : 'inherit',
+                                            color: '#0D1B2A',
+                                            wordBreak: 'break-all',
+                                            background: '#F4F6F8',
+                                            p: 1.5, borderRadius: 2,
+                                            border: '1px solid #DDE1E7'
+                                        }}
+                                    >
+                                        {item.value}
+                                    </Typography>
+                                </Box>
+                            ))}
+
+                            <Divider sx={{ my: 3 }} />
+
+                            {/* Delete button */}
+                            <Button
+                                fullWidth
+                                variant="outlined"
+                                color="error"
+                                startIcon={<Delete />}
+                                onClick={(e) => {
+                                    handleDelete(selectedEmployee.id, e);
+                                    setOpenDrawer(false);
+                                }}
+                                sx={{ borderRadius: 2, textTransform: 'none' }}
+                            >
+                                Delete Employee
+                            </Button>
+                        </Box>
+                    </Box>
+                )}
+            </Drawer>
+
             {/* Add Employee Modal */}
             <Dialog
                 open={openModal}
-                onClose={() => { setOpenModal(false); setForm(emptyForm); setFormError(''); }}
+                onClose={() => {
+                    setOpenModal(false);
+                    setForm(emptyForm);
+                    setFormError('');
+                }}
                 maxWidth="sm"
                 fullWidth
                 PaperProps={{ sx: { borderRadius: 3 } }}
@@ -334,7 +491,11 @@ export default function EmployeeListPage() {
 
                     <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
                         <Button
-                            onClick={() => { setOpenModal(false); setForm(emptyForm); setFormError(''); }}
+                            onClick={() => {
+                                setOpenModal(false);
+                                setForm(emptyForm);
+                                setFormError('');
+                            }}
                             sx={{ color: '#4A5568', textTransform: 'none' }}
                         >
                             Cancel

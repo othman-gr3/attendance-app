@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,  "/api/users").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.PUT,  "/api/conge/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/ai/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/pointage/**").authenticated()
                         .requestMatchers("/api/conge/**").authenticated()
                         .requestMatchers("/api/stats/**").authenticated()
@@ -54,7 +55,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:3000",
+                "http://192.168.11.101:3000",
+                "http://127.0.0.1:3000"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

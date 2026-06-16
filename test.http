@@ -122,3 +122,38 @@ Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJoaWJhQHRlc3QuY29tIiwicm9sZ
 ### Get pointages for a user
 GET http://localhost:8080/api/pointage?userId=PASTE_USER_ID_HERE
 Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJoaWJhQHRlc3QuY29tIiwicm9sZSI6IlJPTEVfQURNSU4iLCJpYXQiOjE3ODE1NDE3MjAsImV4cCI6MTc4MTYyODEyMH0.0wJdGYFd0jVI92AfXNSBkdn8Ohgl1dq2MYu_9x_465KiVI5pTMQxorYdnbGS8LZz
+
+### Register Othmane as admin
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "nom": "Othmane",
+  "email": "othmane2@test.com",
+  "password": "123456",
+  "role": "ROLE_ADMIN"
+}
+
+
+
+### Login Othmane
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "othmane2@test.com",
+  "password": "123456"
+}
+
+
+
+### AI Reminder
+POST http://localhost:8080/api/ai/reminder
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJvdGhtYW5lMkB0ZXN0LmNvbSIsInJvbGUiOiJST0xFX0FETUlOIiwiaWF0IjoxNzgxNjUwOTg2LCJleHAiOjE3ODE3MzczODZ9.0i836idmqXgqoleSlGNF7Bt94z85xETt8aNl-ZZ92tIp49Tp_TzErQEEx-wChwR7
+
+{
+  "nom": "lkarmi",
+  "email": "lkarmi@gmail.com",
+  "absenceDays": 2
+}

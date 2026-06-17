@@ -1,0 +1,14 @@
+.dot-1, .dot-2, .dot-3 {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #0F2942;
+    animation: bounce 1.2s infinite;
+}
+.dot-2 { animation-delay: 0.2s; }
+.dot-3 { animation-delay: 0.4s; }
+
+@keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+}

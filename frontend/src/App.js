@@ -11,6 +11,7 @@ import LeaveRequestForm from './pages/Leave/LeaveRequestForm';
 import AdminLeaveApproval from './pages/Leave/AdminLeaveApproval';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import AnomalyReport from './pages/Dashboard/AnomalyReport';
+import ChatBot from './components/Chatbot/ChatBot';
 
 const theme = createTheme({
   palette: {
@@ -113,6 +114,7 @@ export default function App() {
               <Route path="*" element={<Navigate to="/login" />} />
             </Routes>
           </BrowserRouter>
+          <ChatBot />
         </AuthProvider>
       </ThemeProvider>
   );

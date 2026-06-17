@@ -150,10 +150,27 @@ Content-Type: application/json
 ### AI Reminder
 POST http://localhost:8080/api/ai/reminder
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJvdGhtYW5lMkB0ZXN0LmNvbSIsInJvbGUiOiJST0xFX0FETUlOIiwiaWF0IjoxNzgxNjUwOTg2LCJleHAiOjE3ODE3MzczODZ9.0i836idmqXgqoleSlGNF7Bt94z85xETt8aNl-ZZ92tIp49Tp_TzErQEEx-wChwR7
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJvdGhtYW5lMkB0ZXN0LmNvbSIsInJvbGUiOiJST0xFX0FETUlOIiwiaWF0IjoxNzgxNjY3NDE5LCJleHAiOjE3ODE3NTM4MTl9.yyxNUeu8rgAtFmpdOBNfJEEvzur4BtjE7AP-ic9k9_FVWKE80qNtmpUVKHKk464s
 
 {
   "nom": "lkarmi",
   "email": "lkarmi@gmail.com",
   "absenceDays": 2
+}
+
+
+
+### Test chat
+POST http://localhost:8080/api/ai/chat
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJvdGhtYW5lMkB0ZXN0LmNvbSIsInJvbGUiOiJST0xFX0FETUlOIiwiaWF0IjoxNzgxNjY3MTA1LCJleHAiOjE3ODE3NTM1MDV9.9zyZYnLpWgmKl9n_yJ1_olvxcRqYj9Kxasa-NP6WZkZpqHg3DesroOT83qMM7GTT
+
+{
+  "messages": [
+    { "role": "assistant", "content": "Hi! How can I help?" },
+    { "role": "user", "content": "how many times was I absent" }
+  ],
+  "systemPrompt": "You are an HR assistant.",
+  "userId": "PASTE_USER_ID_HERE",
+  "role": "ROLE_ADMIN"
 }

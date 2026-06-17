@@ -1,9 +1,10 @@
 package com.attendance.pointage;
 
+import com.attendance.user.User;
+import com.attendance.user.UserRepository;
 import com.google.zxing.WriterException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -17,12 +18,11 @@ public class PointageController {
 
     private final PointageService pointageService;
     private final QRCodeService qrCodeService;
+    private final UserRepository userRepository; // ← ajouter ça
 
-    // POST /api/pointage — Enregistrer un pointage
     @PostMapping
-    public ResponseEntity<?> pointer(@RequestBody Map<String, Object> body,
-                                     Authentication auth) {
-        String userId = (String) body.get("userId"); // ou extrait du JWT
+    public ResponseEntity<?> pointer(@RequestBody Map<String, Object> body) {
+        String userId = (String) body.get("userId");
         String type = (String) body.get("type");
         Double latitude = body.get("latitude") != null
                 ? Double.parseDouble(body.get("latitude").toString()) : null;
@@ -32,15 +32,20 @@ public class PointageController {
 
         var result = pointageService.enregistrerPointage(userId, type, latitude, longitude, qrCode);
 
+        // Récupérer le nom de l'employé
+        User user = userRepository.findById(userId).orElse(null);
+        String nom = user != null ? user.getNom() : "Employé";
+
         return ResponseEntity.ok(Map.of(
-                "message", result.message(),
+                "message", "Pointage enregistré",
                 "valide", result.valide(),
                 "qrValide", result.qrValide(),
-                "gpsValide", result.gpsValide()
+                "gpsValide", result.gpsValide(),
+                "nom", nom,
+                "heure", result.heure()
         ));
     }
 
-    // GET /api/pointage?userId=...&date=2026-06-13
     @GetMapping
     public ResponseEntity<List<Pointage>> getPointages(
             @RequestParam String userId,
@@ -48,7 +53,6 @@ public class PointageController {
         return ResponseEntity.ok(pointageService.getPointages(userId, date));
     }
 
-    // GET /api/pointage/qr — Générer le QR code du moment (admin)
     @GetMapping("/qr")
     public ResponseEntity<?> getQRCode() throws WriterException, IOException {
         String code = qrCodeService.getCurrentCode();

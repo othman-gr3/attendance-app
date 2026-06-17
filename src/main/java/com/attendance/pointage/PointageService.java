@@ -41,8 +41,10 @@ public class PointageService {
         p.setValide(valide);
 
         pointageRepository.save(p);
+        String heure = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
+        p.setHeure(heure);
 
-        return new PointageResult("Pointage enregistré", valide, qrValide, gpsValide);
+        return new PointageResult("Pointage enregistré", valide, qrValide, gpsValide, heure);
     }
 
     public List<Pointage> getPointages(String userId, String date) {
@@ -68,6 +70,7 @@ public class PointageService {
     }
 
     // Classe interne pour la réponse
+// Changer le record tout en bas :
     public record PointageResult(String message, boolean valide,
-                                 boolean qrValide, boolean gpsValide) {}
-}
+                                 boolean qrValide, boolean gpsValide,
+                                 String heure) {}}

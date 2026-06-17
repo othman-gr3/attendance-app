@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://192.168.11.101:8080/api',
+    // Utilisation de localhost pour communiquer avec le backend sur la même machine
+    baseURL: 'http://192.168.1.12:8080/api',
 });
 
 api.interceptors.request.use((config) => {

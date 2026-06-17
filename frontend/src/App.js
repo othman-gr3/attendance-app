@@ -6,6 +6,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/Login/LoginPage';
 import RegisterPage from './pages/Register/RegisterPage';
 import EmployeeListPage from './pages/Admin/EmployeeListPage';
+import CheckInPage from "./checkin/CheckInPage";
+import AttendanceHistory from "./checkin/AttendanceHistory";
+import QRCodeDisplay from "./checkin/QRCodeDisplay";
 
 const theme = createTheme({
   palette: {
@@ -69,6 +72,13 @@ export default function App() {
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/checkin" element={<ProtectedRoute><CheckInPage /></ProtectedRoute>} />
+              <Route path="/history" element={<ProtectedRoute><AttendanceHistory /></ProtectedRoute>} />
+              <Route path="/admin/borne" element={
+    <ProtectedRoute role="ROLE_ADMIN">
+      <QRCodeDisplay />
+    </ProtectedRoute>
+  } />
               <Route path="/admin/employees" element={
                 <ProtectedRoute role="ROLE_ADMIN">
                   <EmployeeListPage />

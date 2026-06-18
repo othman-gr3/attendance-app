@@ -52,9 +52,9 @@ public class AiController {
         try {
             // Pointage / attendance data
             if (containsAny(lastMessage,
-                    "check in", "pointer", "pointage", "late", "arrived",
-                    "attendance", "history", "time", "aujourd'hui", "today",
-                    "heure", "retard")) {
+                    "check in", "check-in", "check out", "check-out", "clock in", "clock out",
+                    "pointer", "pointage", "late", "arrived", "attendance", "history", "time", 
+                    "aujourd'hui", "today", "heure", "hour", "delay", "retard")) {
                 ResponseEntity<?> res = pointageController
                         .getPointages(userId, today);
                 contextData.append("\nToday's attendance: ")
@@ -72,7 +72,7 @@ public class AiController {
             // Leave / congé data
             if (containsAny(lastMessage,
                     "leave", "congé", "conge", "days off", "vacation",
-                    "absent", "approved", "status", "demande", "jour")) {
+                    "absent", "approved", "status", "request", "demande", "jour", "day")) {
                 ResponseEntity<?> res = congeController
                         .getMyConges(authentication);
                 contextData.append("\nMy leave requests: ")
@@ -81,8 +81,8 @@ public class AiController {
 
             // Stats data
             if (containsAny(lastMessage,
-                    "stats", "hours", "heures", "rate", "taux",
-                    "summary", "resume", "report", "rapport", "month", "mois")) {
+                    "stats", "hours", "heures", "rate", "taux", "presence",
+                    "summary", "resume", "report", "rapport", "month", "mois", "year", "annee")) {
                 ResponseEntity<?> res = statsController
                         .getStats(userId, currentMonth, currentYear);
                 contextData.append("\nMy stats this month: ")
@@ -92,7 +92,7 @@ public class AiController {
             // Admin only — all employees data
             if ("ROLE_ADMIN".equals(role)) {
                 if (containsAny(lastMessage,
-                        "absent", "who", "qui", "team", "all", "everyone",
+                        "absent", "who", "qui", "team", "all", "everyone", "employee", "staff",
                         "tous", "equipe", "anomaly", "anomalie",
                         "prediction", "report", "rapport")) {
                     ResponseEntity<?> res = statsController
@@ -102,8 +102,8 @@ public class AiController {
                 }
 
                 if (containsAny(lastMessage,
-                        "anomaly", "anomalie", "late", "retard",
-                        "irregular", "problem", "probleme")) {
+                        "anomaly", "anomalie", "late", "delay", "retard", "early exit", "sortie",
+                        "insufficiency", "insuffisance", "irregular", "problem", "probleme")) {
                     ResponseEntity<?> res = statsController
                             .getAnomalies(userId, currentMonth, currentYear);
                     contextData.append("\nAnomalies detected: ")
@@ -111,8 +111,8 @@ public class AiController {
                 }
 
                 if (containsAny(lastMessage,
-                        "all leaves", "all conges", "tous les conges",
-                        "pending", "en attente", "approve")) {
+                        "all leaves", "all conges", "tous les conges", "leaves",
+                        "pending", "en attente", "approve", "approval", "reject")) {
                     ResponseEntity<?> res = congeController.getAllConges();
                     contextData.append("\nAll leave requests: ")
                             .append(res.getBody());

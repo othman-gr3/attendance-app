@@ -9,6 +9,8 @@ import com.attendance.stats.dto.AnomalyDto;
 import com.attendance.stats.dto.StatsResponse;
 import com.attendance.user.User;
 import com.attendance.user.UserRepository;
+import com.attendance.notification.Notification;
+import com.attendance.notification.NotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +32,9 @@ public class StatsService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     private static final int DAILY_WORK_HOURS = 8;
     private static final String START_HOUR = "09:00";
     private static final String END_HOUR = "17:00";
@@ -47,11 +52,11 @@ public class StatsService {
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
 
-        // Fetch all pointages for this user in the month
+        // Fetch all pointages for this user in the month (only valid ones)
         List<Pointage> pointages = pointageRepository.findByUserId(userId).stream()
                 .filter(p -> {
                     LocalDate date = LocalDate.parse(p.getDate());
-                    return !date.isBefore(startDate) && !date.isAfter(endDate);
+                    return !date.isBefore(startDate) && !date.isAfter(endDate) && Boolean.TRUE.equals(p.getValide());
                 })
                 .collect(Collectors.toList());
 
@@ -65,6 +70,7 @@ public class StatsService {
 
         for (Map.Entry<String, List<Pointage>> entry : pointagesByDate.entrySet()) {
             List<Pointage> dayPointages = entry.getValue();
+            String dateStr = entry.getKey();
 
             Pointage entree = dayPointages.stream()
                     .filter(p -> "entree".equals(p.getType()))
@@ -79,8 +85,10 @@ public class StatsService {
             if (entree != null && sortie != null) {
                 double hours = calculateHoursDifference(entree.getHeure(), sortie.getHeure());
                 heuresTravaillees += hours;
+            }
 
-                if (isAfter(entree.getHeure(), START_HOUR)) {
+            if (entree != null && isAfter(entree.getHeure(), START_HOUR)) {
+                if (!hasApprovedJustificationOnDate(userId, dateStr)) {
                     retards++;
                 }
             }
@@ -93,8 +101,9 @@ public class StatsService {
                 String dateStr = date.toString();
                 boolean hasPointage = pointagesByDate.containsKey(dateStr);
                 boolean hasApprovedConge = hasApprovedCongeOnDate(userId, dateStr);
+                boolean hasApprovedJustification = hasApprovedJustificationOnDate(userId, dateStr);
 
-                if (!hasPointage && !hasApprovedConge) {
+                if (!hasPointage && !hasApprovedConge && !hasApprovedJustification) {
                     absences++;
                 }
             }
@@ -122,7 +131,7 @@ public class StatsService {
         List<Pointage> pointages = pointageRepository.findByUserId(userId).stream()
                 .filter(p -> {
                     LocalDate date = LocalDate.parse(p.getDate());
-                    return !date.isBefore(startDate) && !date.isAfter(endDate);
+                    return !date.isBefore(startDate) && !date.isAfter(endDate) && Boolean.TRUE.equals(p.getValide());
                 })
                 .collect(Collectors.toList());
 
@@ -148,7 +157,7 @@ public class StatsService {
                 // Check for absence
                 if (entree == null && sortie == null) {
                     if (!hasApprovedCongeOnDate(userId, dateStr)) {
-                        anomalies.add(new AnomalyDto(dateStr, "absence", "Aucun pointage ce jour"));
+                        anomalies.add(new AnomalyDto(dateStr, "absence", "No check-in recorded for this day"));
                     }
                 }
 
@@ -157,7 +166,7 @@ public class StatsService {
                     anomalies.add(new AnomalyDto(
                             dateStr,
                             "retard",
-                            "Arrivée à " + entree.getHeure() + " (limite " + START_HOUR + ")"
+                            "Arrival at " + entree.getHeure() + " (limit " + START_HOUR + ")"
                     ));
                 }
 
@@ -166,7 +175,7 @@ public class StatsService {
                     anomalies.add(new AnomalyDto(
                             dateStr,
                             "sortie_anticipee",
-                            "Départ à " + sortie.getHeure() + " (limite " + END_HOUR + ")"
+                            "Departure at " + sortie.getHeure() + " (limit " + END_HOUR + ")"
                     ));
                 }
 
@@ -177,7 +186,7 @@ public class StatsService {
                         anomalies.add(new AnomalyDto(
                                 dateStr,
                                 "insuffisance",
-                                "Heures travaillées: " + String.format("%.1f", hours) + "h (minimum " + DAILY_WORK_HOURS + "h)"
+                                "Hours worked: " + String.format("%.1f", hours) + "h (minimum " + DAILY_WORK_HOURS + "h)"
                         ));
                     }
                 }
@@ -322,6 +331,17 @@ public class StatsService {
         }
 
         return count;
+    }
+
+    private boolean hasApprovedJustificationOnDate(String userId, String dateStr) {
+        List<Notification> notifications = notificationRepository.findByUserId(userId);
+        if (notifications == null) return false;
+        for (Notification notif : notifications) {
+            if (dateStr.equals(notif.getAnomalyDate()) && "APPROVED".equals(notif.getJustificationStatus())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

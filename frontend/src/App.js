@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import { AuthProvider } from './auth/AuthContext';
+import { AuthProvider, useAuth } from './auth/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import LoginPage from './pages/Login/LoginPage';
@@ -15,6 +15,9 @@ import ChatBot from './components/Chatbot/ChatBot';
 import CheckInPage from "./checkin/CheckInPage";
 import AttendanceHistory from "./checkin/AttendanceHistory";
 import QRCodeDisplay from "./checkin/QRCodeDisplay";
+import ProfilePage from "./pages/Profile/ProfilePage";
+import NotificationsPage from "./pages/Notifications/NotificationsPage";
+import CalendarPage from "./pages/Calendar/CalendarPage";
 
 const theme = createTheme({
     palette: {
@@ -69,6 +72,13 @@ const theme = createTheme({
     }
 });
 
+const RootRedirect = () => {
+    const { user, loading } = useAuth();
+    if (loading) return null;
+    if (!user) return <Navigate to="/login" replace />;
+    return <Navigate to={user.role === 'ROLE_ADMIN' ? '/dashboard' : '/checkin'} replace />;
+};
+
 export default function App() {
     return (
         <ThemeProvider theme={theme}>
@@ -82,16 +92,19 @@ export default function App() {
                         {/* Walid's routes */}
                         <Route path="/checkin" element={
                             <ProtectedRoute>
+                                <Sidebar />
                                 <CheckInPage />
                             </ProtectedRoute>
                         } />
                         <Route path="/history" element={
                             <ProtectedRoute>
+                                <Sidebar />
                                 <AttendanceHistory />
                             </ProtectedRoute>
                         } />
                         <Route path="/admin/borne" element={
                             <ProtectedRoute role="ROLE_ADMIN">
+                                <Sidebar />
                                 <QRCodeDisplay />
                             </ProtectedRoute>
                         } />
@@ -130,7 +143,28 @@ export default function App() {
                             </ProtectedRoute>
                         } />
 
-                        <Route path="*" element={<Navigate to="/login" />} />
+                        {/* New employee pages */}
+                        <Route path="/profile" element={
+                            <ProtectedRoute>
+                                <Sidebar />
+                                <ProfilePage />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/notifications" element={
+                            <ProtectedRoute>
+                                <Sidebar />
+                                <NotificationsPage />
+                            </ProtectedRoute>
+                        } />
+                        <Route path="/calendar" element={
+                            <ProtectedRoute>
+                                <Sidebar />
+                                <CalendarPage />
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="/" element={<RootRedirect />} />
+                        <Route path="*" element={<RootRedirect />} />
                     </Routes>
                 </BrowserRouter>
                 <ChatBot />

@@ -17,4 +17,6 @@ public class User {
     private String email;
     private String password;
     private String role; // "ROLE_ADMIN" or "ROLE_EMPLOYE"
+    private String createdAt; // ISO date string, e.g. "2026-06-01"
+    private String profilePic; // Base64 profile picture string
 }

@@ -45,6 +45,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/pointage/**").authenticated()
                         .requestMatchers("/api/conge/**").authenticated()
                         .requestMatchers("/api/stats/**").authenticated()
+                        .requestMatchers("/api/notifications/**").authenticated()
                         .requestMatchers("/api/users/**").authenticated()
                         .anyRequest().authenticated()
                 )
@@ -59,7 +60,10 @@ public class SecurityConfig {
         config.setAllowedOriginPatterns(List.of(
                 "http://localhost:3000",
                 "http://192.168.11.101:3000",
-                "http://127.0.0.1:3000"
+                "http://127.0.0.1:3000",
+                "https://localhost:3000",
+                "https://192.168.11.101:3000",
+                "https://127.0.0.1:3000"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));

@@ -7,10 +7,12 @@ import {
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../../api/axios';
+import { useAuth } from '../../auth/AuthContext';
 
 const PRIMARY = '#0F2942';
 
 export default function RegisterPage() {
+    const { user } = useAuth();
     const [form, setForm] = useState({
         nom: '', email: '', password: '', role: 'ROLE_EMPLOYE'
     });
@@ -19,6 +21,13 @@ export default function RegisterPage() {
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+
+    // Auto-redirect if already logged in
+    React.useEffect(() => {
+        if (user) {
+            navigate(user.role === 'ROLE_ADMIN' ? '/dashboard' : '/checkin', { replace: true });
+        }
+    }, [user, navigate]);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });

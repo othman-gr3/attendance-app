@@ -51,7 +51,7 @@ IMPORTANT RULES:
 - Format numbers and dates clearly
 - Keep responses short and friendly
 - If no data is available for a question, say "No data found for this period"
-- Respond in the same language the user writes in (French or English)
+- Always respond in English, regardless of the language the user writes in
 - Never make up data`;
     };
 

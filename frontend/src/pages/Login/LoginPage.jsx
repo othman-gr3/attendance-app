@@ -10,8 +10,15 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login } = useAuth();
+    const { user, login } = useAuth();
     const navigate = useNavigate();
+
+    // Auto-redirect if already logged in
+    React.useEffect(() => {
+        if (user) {
+            navigate(user.role === 'ROLE_ADMIN' ? '/dashboard' : '/checkin', { replace: true });
+        }
+    }, [user, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -23,7 +30,7 @@ export default function LoginPage() {
             if (res.data.role === 'ROLE_ADMIN') {
                 navigate('/dashboard');
             } else {
-                navigate('/leave');
+                navigate('/checkin');
             }
         } catch (err) {
             setError(err.response?.data?.error || 'Invalid email or password');

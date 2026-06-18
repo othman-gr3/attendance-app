@@ -11,3 +11,97 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* --- Mobile Responsiveness and Adaptive Styles --- */
+@media (max-width: 768px) {
+  /* Reset left margins of pages offset by fixed desktop sidebar */
+  div[style*="margin-left: 240px"],
+  div[style*="margin-left:240px"],
+  div[style*="margin-left: 240"],
+  div[style*="margin-left:240"],
+  div[style*="marginLeft: 240px"],
+  div[style*="marginLeft:240px"],
+  div[style*="marginLeft: 240"],
+  div[style*="marginLeft:240"],
+  .page-container {
+    margin-left: 0 !important;
+    padding: 16px !important;
+    padding-top: 72px !important; /* Make room for the mobile top header bar */
+    height: auto !important;
+    min-height: calc(100vh - 72px) !important;
+    overflow: visible !important;
+    gap: 16px !important;
+  }
+
+  /* Make all tables scrollable horizontally to prevent page overflow */
+  table {
+    display: block !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Dashboard Stats Grid (5 columns -> 2 columns) */
+  div[style*="grid-template-columns: repeat(5, 1fr)"],
+  div[style*="grid-template-columns:repeat(5, 1fr)"],
+  div[style*="gridTemplateColumns: repeat(5, 1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* Dashboard Charts, CheckIn & Borne QR Main Grid (2 columns -> 1 column) */
+  div[style*="grid-template-columns: 1fr 1fr"],
+  div[style*="grid-template-columns:1fr 1fr"],
+  div[style*="grid-template-columns: 1.2fr 1fr"],
+  div[style*="grid-template-columns:1.2fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* CheckIn & Admin Quick Stats (3 columns -> 1 column) */
+  div[style*="grid-template-columns: 1fr 1fr 1fr"],
+  div[style*="grid-template-columns:1fr 1fr 1fr"],
+  div[style*="grid-template-columns: repeat(3, 1fr)"],
+  div[style*="grid-template-columns:repeat(3, 1fr)"] {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Dashboard, Anomaly & Employee Filter Bars (multiple columns -> 1 column) */
+  div[style*="grid-template-columns: 2fr 1fr 1fr 1fr"],
+  div[style*="grid-template-columns: 1fr 1fr 1.2fr"],
+  div[style*="grid-template-columns: 1fr 1fr 1fr 1.2fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+
+  /* CheckIn page right decorative panel (fixed 350px -> 100%) */
+  div[style*="width: 350px"],
+  div[style*="width:350px"] {
+    width: 100% !important;
+  }
+
+  /* General Form / Top Bars (flex-space-between -> flex-column-start) */
+  div[style*="display: flex"][style*="justify-content: space-between"],
+  div[style*="display:flex"][style*="justify-content:space-between"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Dashboard Stats Grid (2 columns -> 1 column on extra small screens) */
+  div[style*="grid-template-columns: repeat(5, 1fr)"],
+  div[style*="grid-template-columns:repeat(5, 1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Employee Card selection grid (auto-fill minmax 280px -> 100%) */
+  div[style*="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+

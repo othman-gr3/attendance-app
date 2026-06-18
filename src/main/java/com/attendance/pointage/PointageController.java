@@ -18,7 +18,8 @@ public class PointageController {
 
     private final PointageService pointageService;
     private final QRCodeService qrCodeService;
-    private final UserRepository userRepository; // ← ajouter ça
+    private final UserRepository userRepository;
+    private final PointageRepository pointageRepository;
 
     @PostMapping
     public ResponseEntity<?> pointer(@RequestBody Map<String, Object> body) {
@@ -61,5 +62,14 @@ public class PointageController {
                 "code", code,
                 "image", "data:image/png;base64," + imageBase64
         ));
+    }
+
+    @PostMapping("/debug-create")
+    public ResponseEntity<?> debugCreate(@RequestBody Pointage pointage) {
+        if (pointage.getValide() == null) {
+            pointage.setValide(true);
+        }
+        Pointage saved = pointageRepository.save(pointage);
+        return ResponseEntity.ok(saved);
     }
 }

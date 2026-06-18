@@ -21,8 +21,8 @@ public class QRCodeService {
     private LocalDateTime codeGeneratedAt = LocalDateTime.now();
 
     public String getCurrentCode() {
-        // Rotation automatique toutes les heures
-        if (LocalDateTime.now().isAfter(codeGeneratedAt.plusHours(1))) {
+        // Rotation automatique toutes les 30 secondes
+        if (LocalDateTime.now().isAfter(codeGeneratedAt.plusSeconds(30))) {
             currentCode = generateNewCode();
             codeGeneratedAt = LocalDateTime.now();
         }

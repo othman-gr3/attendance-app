@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { useAuth } from '../../auth/AuthContext';
+import InfoIcon from '@mui/icons-material/Info';
 
 const LeaveRequestForm = () => {
     const { user } = useAuth();
@@ -12,16 +13,42 @@ const LeaveRequestForm = () => {
     const [error, setError] = useState('');
     const [requests, setRequests] = useState([]);
     const [loadingRequests, setLoadingRequests] = useState(false);
+    const [congesRestants, setCongesRestants] = useState(20);
+
+    const [showRules, setShowRules] = useState(() => {
+        return localStorage.getItem('hide_rules_conges') !== 'true';
+    });
+
+    const toggleRules = () => {
+        setShowRules(prev => {
+            const next = !prev;
+            localStorage.setItem('hide_rules_conges', String(!next));
+            return next;
+        });
+    };
 
     useEffect(() => {
         fetchMyRequests();
-    }, []);
+    }, [user]);
 
     const fetchMyRequests = async () => {
         setLoadingRequests(true);
         try {
             const response = await api.get('/conge/me');
             setRequests(response.data.data || []);
+
+            if (user?.userId) {
+                const res = await api.get('/stats', {
+                    params: {
+                        userId: user.userId,
+                        month: new Date().getMonth() + 1,
+                        year: new Date().getFullYear()
+                    }
+                });
+                if (res.data?.congesRestants !== undefined) {
+                    setCongesRestants(res.data.congesRestants);
+                }
+            }
         } catch (err) {
             console.error('Error fetching requests:', err);
             setError('Failed to load your leave requests');
@@ -36,6 +63,38 @@ const LeaveRequestForm = () => {
 
         if (!dateDebut || !dateFin) {
             setError('Please fill in all fields');
+            return;
+        }
+
+        const start = new Date(dateDebut);
+        const end = new Date(dateFin);
+        if (start > end) {
+            setError("Start date must be before end date.");
+            return;
+        }
+
+        const duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+        // Balance check for annual leaves
+        if (type === 'annuel' && duration > congesRestants) {
+            setError(`Insufficient annual leave balance (Remaining balance: ${congesRestants} days, requested: ${duration} days).`);
+            return;
+        }
+
+        // Anticipation check (5 days) for annual / exceptional
+        if (type !== 'maladie') {
+            const minDate = new Date();
+            minDate.setDate(minDate.getDate() + 5);
+            minDate.setHours(0, 0, 0, 0);
+            if (start < minDate) {
+                setError("Annual/exceptional leave requests must be submitted at least 5 days in advance.");
+                return;
+            }
+        }
+
+        // Sick leave limit check
+        if (type === 'maladie' && duration > 2) {
+            setError("Sick leaves exceeding 2 days require a physical medical certificate. Please contact HR.");
             return;
         }
 
@@ -211,15 +270,64 @@ const LeaveRequestForm = () => {
     };
 
     return (
-        <div style={pageStyle}>
-            <div style={headerStyle}>
-                <h1 style={titleStyle}>Leave Request</h1>
-                <p style={subtitleStyle}>Submit a new leave request</p>
+        <div className="page-container" style={pageStyle}>
+            <div style={{ ...headerStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                    <h1 style={titleStyle}>Leave Request</h1>
+                    <p style={subtitleStyle}>Submit a new leave request</p>
+                </div>
+                <button
+                    onClick={toggleRules}
+                    style={{
+                        background: 'none', border: 'none', color: '#1976D2', cursor: 'pointer',
+                        fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'
+                    }}
+                >
+                    <InfoIcon style={{ fontSize: '16px' }} /> {showRules ? "Hide rules" : "Show rules"}
+                </button>
             </div>
 
             <div style={cardStyle}>
                 {message && <div style={successMessageStyle}>{message}</div>}
                 {error && <div style={errorMessageStyle}>{error}</div>}
+
+                {/* Guidelines Banner */}
+                {showRules && (
+                    <div style={{
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        backgroundColor: '#E3F2FD',
+                        border: '1px solid #90CAF9',
+                        color: '#0D47A1',
+                        fontSize: '12px',
+                        lineHeight: '1.6',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                        marginBottom: '24px',
+                        position: 'relative',
+                    }}>
+                        <button
+                            onClick={toggleRules}
+                            style={{
+                                position: 'absolute', top: '8px', right: '12px', background: 'none', border: 'none',
+                                fontSize: '16px', fontWeight: '700', color: '#0D47A1', cursor: 'pointer'
+                            }}
+                            title="Hide"
+                        >
+                            ×
+                        </button>
+                        <div style={{ fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <InfoIcon style={{ fontSize: '16px' }} /> Leave request submission rules:
+                        </div>
+                        <ul style={{ margin: 0, paddingLeft: '18px' }}>
+                            <li><strong>Available balance:</strong> You currently have <strong>{congesRestants} days</strong> of annual leave remaining for this year.</li>
+                            <li><strong>Advance notice:</strong> Annual/exceptional leaves must be submitted at least <strong>5 days in advance</strong>.</li>
+                            <li><strong>Sick leave:</strong> Maximum <strong>2 consecutive days</strong> online (beyond that, a physical certificate is required by HR).</li>
+                            <li><strong>Non-overlapping:</strong> Your dates must not overlap with an active request.</li>
+                        </ul>
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit}>
                     <div style={formRowStyle}>

@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -27,7 +29,7 @@ public class AuthService {
 
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
 
-        return new LoginResponse(token, user.getRole(), user.getId());
+        return new LoginResponse(token, user.getRole(), user.getId(), user.getNom());
     }
 
     public String register(RegisterRequest request) {
@@ -40,6 +42,7 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(request.getRole() != null ? request.getRole() : "ROLE_EMPLOYE");
+        user.setCreatedAt(LocalDate.now().toString());
 
         userRepository.save(user);
         return "User registered successfully";

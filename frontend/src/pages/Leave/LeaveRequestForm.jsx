@@ -1,12 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { useAuth } from '../../auth/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import InfoIcon from '@mui/icons-material/Info';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import { useTheme } from '@mui/material';
+
+const getTodayDateString = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+};
 
 const LeaveRequestForm = () => {
     const { user } = useAuth();
-    const [dateDebut, setDateDebut] = useState('');
-    const [dateFin, setDateFin] = useState('');
+    const { t } = useLanguage();
+    const theme = useTheme();
+    const [dateDebut, setDateDebut] = useState(getTodayDateString());
+    const [dateFin, setDateFin] = useState(getTodayDateString());
     const [type, setType] = useState('annuel');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
@@ -31,8 +46,18 @@ const LeaveRequestForm = () => {
         fetchMyRequests();
     }, [user]);
 
-    const fetchMyRequests = async () => {
-        setLoadingRequests(true);
+    useEffect(() => {
+        if (!user) return;
+        const interval = setInterval(() => {
+            fetchMyRequests(true);
+        }, 30000); // 30 seconds auto-refresh
+        return () => clearInterval(interval);
+    }, [user]);
+
+    const fetchMyRequests = async (silent = false) => {
+        if (!silent) {
+            setLoadingRequests(true);
+        }
         try {
             const response = await api.get('/conge/me');
             setRequests(response.data.data || []);
@@ -51,9 +76,13 @@ const LeaveRequestForm = () => {
             }
         } catch (err) {
             console.error('Error fetching requests:', err);
-            setError('Failed to load your leave requests');
+            if (!silent) {
+                setError(t('leave.failedLoadRequests'));
+            }
         }
-        setLoadingRequests(false);
+        if (!silent) {
+            setLoadingRequests(false);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -62,14 +91,14 @@ const LeaveRequestForm = () => {
         setError('');
 
         if (!dateDebut || !dateFin) {
-            setError('Please fill in all fields');
+            setError(t('leave.fillAllFields'));
             return;
         }
 
         const start = new Date(dateDebut);
         const end = new Date(dateFin);
         if (start > end) {
-            setError("Start date must be before end date.");
+            setError(t('leave.startBeforeEnd'));
             return;
         }
 
@@ -77,7 +106,7 @@ const LeaveRequestForm = () => {
 
         // Balance check for annual leaves
         if (type === 'annuel' && duration > congesRestants) {
-            setError(`Insufficient annual leave balance (Remaining balance: ${congesRestants} days, requested: ${duration} days).`);
+            setError(t('leave.insufficientBalance', { balance: congesRestants, requested: duration }));
             return;
         }
 
@@ -87,14 +116,14 @@ const LeaveRequestForm = () => {
             minDate.setDate(minDate.getDate() + 5);
             minDate.setHours(0, 0, 0, 0);
             if (start < minDate) {
-                setError("Annual/exceptional leave requests must be submitted at least 5 days in advance.");
+                setError(t('leave.advanceNotice'));
                 return;
             }
         }
 
         // Sick leave limit check
         if (type === 'maladie' && duration > 2) {
-            setError("Sick leaves exceeding 2 days require a physical medical certificate. Please contact HR.");
+            setError(t('leave.sickLimit'));
             return;
         }
 
@@ -107,32 +136,32 @@ const LeaveRequestForm = () => {
             });
 
             if (response.status === 201) {
-                setMessage('Leave request submitted successfully');
-                setDateDebut('');
-                setDateFin('');
+                setMessage(t('leave.submittedSuccess'));
+                setDateDebut(getTodayDateString());
+                setDateFin(getTodayDateString());
                 setType('annuel');
                 fetchMyRequests();
             }
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to submit leave request');
+            setError(err.response?.data?.error || t('leave.failedSubmitRequest'));
         }
         setLoading(false);
     };
 
     const getTypeLabel = (typeValue) => {
         const types = {
-            annuel: 'Annual Leave',
-            maladie: 'Sick Leave',
-            exceptionnel: 'Exceptional Leave',
+            annuel: t('leave.annual'),
+            maladie: t('leave.sick'),
+            exceptionnel: t('leave.exceptional'),
         };
         return types[typeValue] || typeValue;
     };
 
     const getStatusBadge = (status) => {
         const statusMap = {
-            en_attente: { label: 'Pending', color: '#FF9500' },
-            valide: { label: 'Approved', color: '#4CAF50' },
-            refuse: { label: 'Rejected', color: '#F44336' },
+            en_attente: { label: t('leave.statusPending'), color: '#FF9500' },
+            valide: { label: t('leave.statusApproved'), color: '#4CAF50' },
+            refuse: { label: t('leave.statusRejected'), color: '#F44336' },
         };
         const statusInfo = statusMap[status] || { label: status, color: '#757575' };
 
@@ -153,7 +182,7 @@ const LeaveRequestForm = () => {
     const pageStyle = {
         marginLeft: '240px',
         padding: '40px',
-        backgroundColor: '#F5F6FA',
+        backgroundColor: theme.palette.background.default,
         minHeight: '100vh',
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
     };
@@ -165,20 +194,23 @@ const LeaveRequestForm = () => {
     const titleStyle = {
         fontSize: '28px',
         fontWeight: '700',
-        color: '#1a2340',
+        color: theme.palette.text.primary,
         margin: '0 0 8px 0',
     };
 
     const subtitleStyle = {
         fontSize: '14px',
-        color: '#7A8A99',
+        color: theme.palette.text.secondary,
         margin: '0',
     };
 
     const cardStyle = {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.palette.background.paper,
         borderRadius: '12px',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+        boxShadow: theme.palette.mode === 'dark'
+            ? '0 4px 20px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.2)'
+            : '0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06)',
+        border: `1px solid ${theme.palette.divider}`,
         padding: '32px',
         marginBottom: '40px',
     };
@@ -191,7 +223,7 @@ const LeaveRequestForm = () => {
         display: 'block',
         fontSize: '13px',
         fontWeight: '600',
-        color: '#1a2340',
+        color: theme.palette.text.primary,
         marginBottom: '8px',
     };
 
@@ -199,7 +231,9 @@ const LeaveRequestForm = () => {
         width: '100%',
         padding: '10px 12px',
         fontSize: '14px',
-        border: '1px solid #D0D5DD',
+        backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#FFFFFF',
+        color: theme.palette.text.primary,
+        border: `1px solid ${theme.palette.divider}`,
         borderRadius: '8px',
         fontFamily: 'inherit',
         boxSizing: 'border-box',
@@ -216,7 +250,7 @@ const LeaveRequestForm = () => {
     };
 
     const buttonStyle = {
-        backgroundColor: '#1976D2',
+        backgroundColor: theme.palette.primary.main,
         color: '#FFFFFF',
         padding: '12px 32px',
         fontSize: '14px',
@@ -237,14 +271,16 @@ const LeaveRequestForm = () => {
 
     const successMessageStyle = {
         ...messageStyle,
-        backgroundColor: '#E8F5E9',
-        color: '#2E7D32',
+        backgroundColor: theme.palette.mode === 'dark' ? '#1B4D22' : '#E8F5E9',
+        color: theme.palette.mode === 'dark' ? '#4ADE80' : '#2E7D32',
+        border: theme.palette.mode === 'dark' ? '1px solid #4ade8033' : 'none',
     };
 
     const errorMessageStyle = {
         ...messageStyle,
-        backgroundColor: '#FFEBEE',
-        color: '#C62828',
+        backgroundColor: theme.palette.mode === 'dark' ? '#3B1F1F' : '#FFEBEE',
+        color: theme.palette.mode === 'dark' ? '#EF4444' : '#C62828',
+        border: theme.palette.mode === 'dark' ? '1px solid #ef444433' : 'none',
     };
 
     const tableStyle = {
@@ -253,38 +289,154 @@ const LeaveRequestForm = () => {
     };
 
     const thStyle = {
-        backgroundColor: '#F5F6FA',
+        backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#F5F6FA',
         padding: '12px 16px',
         textAlign: 'left',
         fontSize: '12px',
         fontWeight: '600',
-        color: '#1a2340',
-        borderBottom: '2px solid #E8EAED',
+        color: theme.palette.text.primary,
+        borderBottom: `2px solid ${theme.palette.divider}`,
     };
 
     const tdStyle = {
         padding: '16px',
-        borderBottom: '1px solid #E8EAED',
+        borderBottom: `1px solid ${theme.palette.divider}`,
         fontSize: '13px',
-        color: '#1a2340',
+        color: theme.palette.text.primary,
     };
 
     return (
         <div className="page-container" style={pageStyle}>
             <div style={{ ...headerStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                    <h1 style={titleStyle}>Leave Request</h1>
-                    <p style={subtitleStyle}>Submit a new leave request</p>
+                    <h1 style={titleStyle}>{t('leave.title')}</h1>
+                    <p style={subtitleStyle}>{t('leave.subtitle')}</p>
                 </div>
                 <button
                     onClick={toggleRules}
                     style={{
-                        background: 'none', border: 'none', color: '#1976D2', cursor: 'pointer',
+                        background: 'none', border: 'none', color: theme.palette.primary.main, cursor: 'pointer',
                         fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'
                     }}
                 >
-                    <InfoIcon style={{ fontSize: '16px' }} /> {showRules ? "Hide rules" : "Show rules"}
+                    <InfoIcon style={{ fontSize: '16px' }} /> {showRules ? t('leave.hideRules') : t('leave.showRules')}
                 </button>
+            </div>
+
+            {/* Leave Balance & Stats Cards */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '20px',
+                marginBottom: '32px',
+            }}>
+                {/* Available Balance */}
+                <div style={{
+                    backgroundColor: theme.palette.background.paper,
+                    borderRadius: '12px',
+                    boxShadow: theme.palette.mode === 'dark'
+                        ? '0 4px 20px rgba(0, 0, 0, 0.25)'
+                        : '0 2px 8px rgba(0, 0, 0, 0.04)',
+                    border: `1px solid ${theme.palette.divider}`,
+                    padding: '20px 24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                }}>
+                    <div>
+                        <p style={{ margin: 0, fontSize: '11px', color: theme.palette.text.secondary, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            {t('leave.balanceTitle')}
+                        </p>
+                        <p style={{ margin: '6px 0 0', fontSize: '28px', fontWeight: '800', color: theme.palette.primary.main }}>
+                            {congesRestants} <span style={{ fontSize: '14px', fontWeight: '600', color: theme.palette.text.secondary }}>{congesRestants > 1 ? t('leave.days') : t('leave.day')}</span>
+                        </p>
+                    </div>
+                    <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(38, 115, 221, 0.14)' : '#EBF3FC',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: theme.palette.primary.main,
+                        flexShrink: 0,
+                    }}>
+                        <EventNoteIcon style={{ fontSize: '24px' }} />
+                    </div>
+                </div>
+
+                {/* Approved Requests */}
+                <div style={{
+                    backgroundColor: theme.palette.background.paper,
+                    borderRadius: '12px',
+                    boxShadow: theme.palette.mode === 'dark'
+                        ? '0 4px 20px rgba(0, 0, 0, 0.25)'
+                        : '0 2px 8px rgba(0, 0, 0, 0.04)',
+                    border: `1px solid ${theme.palette.divider}`,
+                    padding: '20px 24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                }}>
+                    <div>
+                        <p style={{ margin: 0, fontSize: '11px', color: theme.palette.text.secondary, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            {t('leave.approvedCount')}
+                        </p>
+                        <p style={{ margin: '6px 0 0', fontSize: '28px', fontWeight: '800', color: '#2E7D32' }}>
+                            {requests.filter(r => r.statut === 'valide').length} <span style={{ fontSize: '14px', fontWeight: '600', color: theme.palette.text.secondary }}>{t('leave.requests')}</span>
+                        </p>
+                    </div>
+                    <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.14)' : '#E8F5E9',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#2E7D32',
+                        flexShrink: 0,
+                    }}>
+                        <CheckCircleIcon style={{ fontSize: '24px' }} />
+                    </div>
+                </div>
+
+                {/* Pending Requests */}
+                <div style={{
+                    backgroundColor: theme.palette.background.paper,
+                    borderRadius: '12px',
+                    boxShadow: theme.palette.mode === 'dark'
+                        ? '0 4px 20px rgba(0, 0, 0, 0.25)'
+                        : '0 2px 8px rgba(0, 0, 0, 0.04)',
+                    border: `1px solid ${theme.palette.divider}`,
+                    padding: '20px 24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                }}>
+                    <div>
+                        <p style={{ margin: 0, fontSize: '11px', color: theme.palette.text.secondary, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            {t('leave.pendingCount')}
+                        </p>
+                        <p style={{ margin: '6px 0 0', fontSize: '28px', fontWeight: '800', color: '#E65100' }}>
+                            {requests.filter(r => r.statut === 'en_attente').length} <span style={{ fontSize: '14px', fontWeight: '600', color: theme.palette.text.secondary }}>{t('leave.requests')}</span>
+                        </p>
+                    </div>
+                    <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(230, 81, 0, 0.14)' : '#FFF8E1',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#E65100',
+                        flexShrink: 0,
+                    }}>
+                        <HourglassEmptyIcon style={{ fontSize: '24px' }} />
+                    </div>
+                </div>
             </div>
 
             <div style={cardStyle}>
@@ -296,9 +448,9 @@ const LeaveRequestForm = () => {
                     <div style={{
                         padding: '12px 16px',
                         borderRadius: '8px',
-                        backgroundColor: '#E3F2FD',
-                        border: '1px solid #90CAF9',
-                        color: '#0D47A1',
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(38, 115, 221, 0.14)' : '#E3F2FD',
+                        border: theme.palette.mode === 'dark' ? '1px solid rgba(38, 115, 221, 0.3)' : '1px solid #90CAF9',
+                        color: theme.palette.mode === 'dark' ? '#F8FAFC' : '#0D47A1',
                         fontSize: '12px',
                         lineHeight: '1.6',
                         display: 'flex',
@@ -311,20 +463,20 @@ const LeaveRequestForm = () => {
                             onClick={toggleRules}
                             style={{
                                 position: 'absolute', top: '8px', right: '12px', background: 'none', border: 'none',
-                                fontSize: '16px', fontWeight: '700', color: '#0D47A1', cursor: 'pointer'
+                                fontSize: '16px', fontWeight: '700', color: theme.palette.mode === 'dark' ? '#F8FAFC' : '#0D47A1', cursor: 'pointer'
                             }}
-                            title="Hide"
+                            title={t('leave.hideRules')}
                         >
                             ×
                         </button>
                         <div style={{ fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <InfoIcon style={{ fontSize: '16px' }} /> Leave request submission rules:
+                            <InfoIcon style={{ fontSize: '16px' }} /> {t('leave.rulesHeader')}
                         </div>
                         <ul style={{ margin: 0, paddingLeft: '18px' }}>
-                            <li><strong>Available balance:</strong> You currently have <strong>{congesRestants} days</strong> of annual leave remaining for this year.</li>
-                            <li><strong>Advance notice:</strong> Annual/exceptional leaves must be submitted at least <strong>5 days in advance</strong>.</li>
-                            <li><strong>Sick leave:</strong> Maximum <strong>2 consecutive days</strong> online (beyond that, a physical certificate is required by HR).</li>
-                            <li><strong>Non-overlapping:</strong> Your dates must not overlap with an active request.</li>
+                            <li>{t('leave.ruleBalance', { days: congesRestants })}</li>
+                            <li>{t('leave.ruleNotice')}</li>
+                            <li>{t('leave.ruleSick')}</li>
+                            <li>{t('leave.ruleOverlap')}</li>
                         </ul>
                     </div>
                 )}
@@ -332,7 +484,7 @@ const LeaveRequestForm = () => {
                 <form onSubmit={handleSubmit}>
                     <div style={formRowStyle}>
                         <div style={formGroupStyle}>
-                            <label style={labelStyle}>Start Date</label>
+                            <label style={labelStyle}>{t('leave.startDate')}</label>
                             <input
                                 type="date"
                                 value={dateDebut}
@@ -342,7 +494,7 @@ const LeaveRequestForm = () => {
                         </div>
 
                         <div style={formGroupStyle}>
-                            <label style={labelStyle}>End Date</label>
+                            <label style={labelStyle}>{t('leave.endDate')}</label>
                             <input
                                 type="date"
                                 value={dateFin}
@@ -353,15 +505,15 @@ const LeaveRequestForm = () => {
                     </div>
 
                     <div style={formGroupStyle}>
-                        <label style={labelStyle}>Leave Type</label>
+                        <label style={labelStyle}>{t('leave.type')}</label>
                         <select
                             value={type}
                             onChange={(e) => setType(e.target.value)}
                             style={selectStyle}
                         >
-                            <option value="annuel">Annual Leave</option>
-                            <option value="maladie">Sick Leave</option>
-                            <option value="exceptionnel">Exceptional Leave</option>
+                            <option value="annuel">{t('leave.annual')}</option>
+                            <option value="maladie">{t('leave.sick')}</option>
+                            <option value="exceptionnel">{t('leave.exceptional')}</option>
                         </select>
                     </div>
 
@@ -376,29 +528,29 @@ const LeaveRequestForm = () => {
                             e.target.style.backgroundColor = '#1976D2';
                         }}
                     >
-                        {loading ? 'Submitting...' : 'Submit Request'}
+                        {loading ? t('leave.submitting') : t('leave.submit')}
                     </button>
                 </form>
             </div>
 
             <div>
-                <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1a2340', marginBottom: '16px' }}>
-                    Your Leave Requests
+                <h2 style={{ fontSize: '20px', fontWeight: '700', color: theme.palette.text.primary, marginBottom: '16px' }}>
+                    {t('leave.yourRequests')}
                 </h2>
 
                 <div style={cardStyle}>
                     {loadingRequests ? (
-                        <p>Loading...</p>
+                        <p>{t('leave.loading')}</p>
                     ) : requests.length === 0 ? (
-                        <p style={{ color: '#7A8A99' }}>No leave requests yet</p>
+                        <p style={{ color: '#7A8A99' }}>{t('leave.noRequests')}</p>
                     ) : (
                         <table style={tableStyle}>
                             <thead>
                                 <tr>
-                                    <th style={thStyle}>Start Date</th>
-                                    <th style={thStyle}>End Date</th>
-                                    <th style={thStyle}>Type</th>
-                                    <th style={thStyle}>Status</th>
+                                    <th style={thStyle}>{t('leave.startDate')}</th>
+                                    <th style={thStyle}>{t('leave.endDate')}</th>
+                                    <th style={thStyle}>{t('leave.type')}</th>
+                                    <th style={thStyle}>{t('leave.status')}</th>
                                 </tr>
                             </thead>
                             <tbody>

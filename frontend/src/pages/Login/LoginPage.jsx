@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '@mui/material';
 import api from '../../api/axios';
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 
@@ -11,6 +13,8 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const { user, login } = useAuth();
+    const { t } = useLanguage();
+    const theme = useTheme();
     const navigate = useNavigate();
 
     // Auto-redirect if already logged in
@@ -33,7 +37,7 @@ export default function LoginPage() {
                 navigate('/checkin');
             }
         } catch (err) {
-            setError(err.response?.data?.error || 'Invalid email or password');
+            setError(err.response?.data?.error || t('login.errorInvalid'));
         } finally {
             setLoading(false);
         }
@@ -41,7 +45,7 @@ export default function LoginPage() {
 
     const pageStyle = {
         minHeight: '100vh',
-        backgroundColor: '#F5F6FA',
+        backgroundColor: theme.palette.background.default,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -50,9 +54,10 @@ export default function LoginPage() {
     };
 
     const cardStyle = {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.palette.background.paper,
         borderRadius: '16px',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+        boxShadow: theme.palette.mode === 'dark' ? '0 4px 24px rgba(0,0,0,0.4)' : '0 4px 24px rgba(0,0,0,0.08)',
+        border: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none',
         padding: '40px',
         maxWidth: '420px',
         width: '100%',
@@ -67,28 +72,28 @@ export default function LoginPage() {
 
     const iconStyle = {
         fontSize: '40px',
-        color: '#1976D2',
+        color: theme.palette.primary.main,
         marginBottom: '16px',
     };
 
     const titleStyle = {
         fontSize: '24px',
         fontWeight: '700',
-        color: '#1a2340',
+        color: theme.palette.text.primary,
         margin: '0 0 8px 0',
         textAlign: 'center',
     };
 
     const subtitleStyle = {
         fontSize: '14px',
-        color: '#888888',
+        color: theme.palette.text.secondary,
         margin: '0',
         textAlign: 'center',
     };
 
     const dividerStyle = {
         height: '1px',
-        backgroundColor: '#E0E0E0',
+        backgroundColor: theme.palette.divider,
         margin: '24px 0 24px 0',
     };
 
@@ -100,7 +105,7 @@ export default function LoginPage() {
     const labelStyle = {
         fontSize: '14px',
         fontWeight: '500',
-        color: '#1a2340',
+        color: theme.palette.text.primary,
         marginBottom: '6px',
     };
 
@@ -113,7 +118,9 @@ export default function LoginPage() {
         width: '100%',
         padding: '12px 16px',
         fontSize: '15px',
-        border: '1px solid #E0E0E0',
+        backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#FFFFFF',
+        color: theme.palette.text.primary,
+        border: theme.palette.mode === 'dark' ? '1px solid #334155' : '1px solid #E0E0E0',
         borderRadius: '8px',
         outline: 'none',
         fontFamily: 'inherit',
@@ -125,7 +132,7 @@ export default function LoginPage() {
         width: '100%',
         padding: '14px',
         marginTop: '24px',
-        backgroundColor: '#1976D2',
+        backgroundColor: theme.palette.primary.main,
         color: '#FFFFFF',
         fontSize: '15px',
         fontWeight: '600',
@@ -136,18 +143,19 @@ export default function LoginPage() {
     };
 
     const errorStyle = {
-        backgroundColor: '#FFEBEE',
-        color: '#D32F2F',
+        backgroundColor: theme.palette.mode === 'dark' ? '#3B1F1F' : '#FFEBEE',
+        color: theme.palette.mode === 'dark' ? '#EF4444' : '#D32F2F',
         padding: '12px 16px',
         borderRadius: '8px',
         fontSize: '13px',
         marginBottom: '24px',
         textAlign: 'center',
+        border: theme.palette.mode === 'dark' ? '1px solid #ef444433' : 'none'
     };
 
     const footerStyle = {
         fontSize: '12px',
-        color: '#AAAAAA',
+        color: theme.palette.text.secondary,
         textAlign: 'center',
         marginTop: '24px',
     };
@@ -158,8 +166,8 @@ export default function LoginPage() {
                 {/* Header */}
                 <div style={headerStyle}>
                     <BusinessCenterIcon style={iconStyle} />
-                    <h1 style={titleStyle}>Attendance App</h1>
-                    <p style={subtitleStyle}>Sign in to your account</p>
+                    <h1 style={titleStyle}>{t('login.title')}</h1>
+                    <p style={subtitleStyle}>{t('login.subtitle')}</p>
                 </div>
 
                 <div style={dividerStyle}></div>
@@ -170,21 +178,21 @@ export default function LoginPage() {
                 {/* Form */}
                 <form onSubmit={handleSubmit} style={formStyle}>
                     <div style={inputWrapperStyle}>
-                        <label style={labelStyle}>Email Address</label>
+                        <label style={labelStyle}>{t('login.emailLabel')}</label>
                         <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            placeholder="you@company.com"
+                            placeholder={t('login.emailPlaceholder')}
                             style={inputStyle}
                             onFocus={(e) => {
-                                e.target.style.borderColor = '#1976D2';
+                                e.target.style.borderColor = theme.palette.primary.main;
                                 e.target.style.borderWidth = '2px';
                                 e.target.style.padding = '12px 15px';
                             }}
                             onBlur={(e) => {
-                                e.target.style.borderColor = '#E0E0E0';
+                                e.target.style.borderColor = theme.palette.mode === 'dark' ? '#334155' : '#E0E0E0';
                                 e.target.style.borderWidth = '1px';
                                 e.target.style.padding = '12px 16px';
                             }}
@@ -192,7 +200,7 @@ export default function LoginPage() {
                     </div>
 
                     <div style={inputWrapperStyle}>
-                        <label style={labelStyle}>Password</label>
+                        <label style={labelStyle}>{t('login.passwordLabel')}</label>
                         <div style={{ position: 'relative' }}>
                             <input
                                 type={showPassword ? 'text' : 'password'}
@@ -202,12 +210,12 @@ export default function LoginPage() {
                                 placeholder="••••••••"
                                 style={{ ...inputStyle, paddingRight: '40px' }}
                                 onFocus={(e) => {
-                                    e.target.style.borderColor = '#1976D2';
+                                    e.target.style.borderColor = theme.palette.primary.main;
                                     e.target.style.borderWidth = '2px';
                                     e.target.style.padding = '12px 40px 12px 15px';
                                 }}
                                 onBlur={(e) => {
-                                    e.target.style.borderColor = '#E0E0E0';
+                                    e.target.style.borderColor = theme.palette.mode === 'dark' ? '#334155' : '#E0E0E0';
                                     e.target.style.borderWidth = '1px';
                                     e.target.style.padding = '12px 40px 12px 16px';
                                 }}
@@ -247,12 +255,12 @@ export default function LoginPage() {
                             e.target.style.backgroundColor = '#1976D2';
                         }}
                     >
-                        {loading ? 'Signing in...' : 'Sign In'}
+                        {loading ? t('login.signing') : t('login.button')}
                     </button>
                 </form>
 
                 {/* Footer */}
-                <div style={footerStyle}>© 2026 Attendance App — All rights reserved</div>
+                <div style={footerStyle}>{t('login.footer')}</div>
             </div>
         </div>
     );

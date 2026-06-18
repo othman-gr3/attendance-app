@@ -8,11 +8,14 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../../api/axios';
 import { useAuth } from '../../auth/AuthContext';
-
-const PRIMARY = '#0F2942';
+import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '@mui/material';
 
 export default function RegisterPage() {
     const { user } = useAuth();
+    const { t } = useLanguage();
+    const theme = useTheme();
+    const PRIMARY = theme.palette.primary.main;
     const [form, setForm] = useState({
         nom: '', email: '', password: '', role: 'ROLE_EMPLOYE'
     });
@@ -40,10 +43,10 @@ export default function RegisterPage() {
         setLoading(true);
         try {
             await api.post('/auth/register', form);
-            setSuccess('Account created successfully! Redirecting to login...');
+            setSuccess(t('register.successMsg'));
             setTimeout(() => navigate('/login'), 2000);
         } catch (err) {
-            setError(err.response?.data?.error || 'Registration failed');
+            setError(err.response?.data?.error || t('register.errorDefault'));
         } finally {
             setLoading(false);
         }
@@ -55,7 +58,7 @@ export default function RegisterPage() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#F4F6F8',
+            background: theme.palette.background.default,
             p: 3,
         }}>
             <Card sx={{ width: '100%', maxWidth: 460, borderRadius: 3, p: 1 }}>
@@ -64,10 +67,10 @@ export default function RegisterPage() {
                     {/* Header */}
                     <Box sx={{ mb: 4 }}>
                         <Typography variant="h5" color={PRIMARY} gutterBottom>
-                            Create an account
+                            {t('register.title')}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                            Fill in the details below to register
+                            {t('register.subtitle')}
                         </Typography>
                     </Box>
 
@@ -87,19 +90,19 @@ export default function RegisterPage() {
                     <Box component="form" onSubmit={handleSubmit}>
 
                         <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                            FULL NAME
+                            {t('register.fullName')}
                         </Typography>
                         <TextField
                             fullWidth name="nom"
                             value={form.nom}
                             onChange={handleChange}
                             required size="small"
-                            placeholder="Othmane Bennani"
+                            placeholder={t('register.fullNamePlaceholder')}
                             sx={{ mt: 0.5, mb: 3 }}
                         />
 
                         <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                            EMAIL ADDRESS
+                            {t('register.emailAddress')}
                         </Typography>
                         <TextField
                             fullWidth name="email"
@@ -107,12 +110,12 @@ export default function RegisterPage() {
                             value={form.email}
                             onChange={handleChange}
                             required size="small"
-                            placeholder="you@company.com"
+                            placeholder={t('register.emailPlaceholder')}
                             sx={{ mt: 0.5, mb: 3 }}
                         />
 
                         <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                            PASSWORD
+                            {t('register.password')}
                         </Typography>
                         <TextField
                             fullWidth name="password"
@@ -141,7 +144,7 @@ export default function RegisterPage() {
                         />
 
                         <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                            ROLE
+                            {t('register.role')}
                         </Typography>
                         <TextField
                             fullWidth select name="role"
@@ -150,8 +153,8 @@ export default function RegisterPage() {
                             size="small"
                             sx={{ mt: 0.5, mb: 4 }}
                         >
-                            <MenuItem value="ROLE_EMPLOYE">Employee</MenuItem>
-                            <MenuItem value="ROLE_ADMIN">Admin</MenuItem>
+                            <MenuItem value="ROLE_EMPLOYE">{t('register.roleEmployee')}</MenuItem>
+                            <MenuItem value="ROLE_ADMIN">{t('register.roleAdmin')}</MenuItem>
                         </TextField>
 
                         <Button
@@ -169,14 +172,14 @@ export default function RegisterPage() {
                         >
                             {loading
                                 ? <CircularProgress size={22} color="inherit" />
-                                : 'Create Account'}
+                                : t('register.btnCreate')}
                         </Button>
 
                         <Box sx={{ textAlign: 'center', mt: 3 }}>
                             <Typography variant="body2" color="text.secondary">
-                                Already have an account?{' '}
+                                {t('register.alreadyHaveAccount')}
                                 <Link to="/login" style={{ color: '#2563EB', fontWeight: 600 }}>
-                                    Sign in
+                                    {t('register.signInLink')}
                                 </Link>
                             </Typography>
                         </Box>

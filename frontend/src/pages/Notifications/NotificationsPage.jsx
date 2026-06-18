@@ -10,46 +10,65 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import InfoIcon from '@mui/icons-material/Info';
 import WarningIcon from '@mui/icons-material/Warning';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-
-const STATUS_CONFIG = {
-  valide: {
-    label: 'Approved',
-    icon: <CheckCircleIcon style={{ fontSize: 18, color: '#2E7D32' }} />,
-    bg: '#E8F5E9', border: '#A5D6A7', color: '#2E7D32',
-    badgeBg: '#E8F5E9', badgeColor: '#2E7D32',
-    message: (type) => `Your leave request (${getTypeLabel(type)}) has been approved`,
-  },
-  refuse: {
-    label: 'Rejected',
-    icon: <CancelIcon style={{ fontSize: 18, color: '#C62828' }} />,
-    bg: '#FFEBEE', border: '#FFCDD2', color: '#C62828',
-    badgeBg: '#FFEBEE', badgeColor: '#C62828',
-    message: (type) => `Your leave request (${getTypeLabel(type)}) has been rejected`,
-  },
-  en_attente: {
-    label: 'Pending',
-    icon: <HourglassEmptyIcon style={{ fontSize: 18, color: '#E65100' }} />,
-    bg: '#FFF8E1', border: '#FFE082', color: '#E65100',
-    badgeBg: '#FFF8E1', badgeColor: '#E65100',
-    message: (type) => `Your leave request (${getTypeLabel(type)}) is under review`,
-  },
-};
-
-function getTypeLabel(type) {
-  return { annuel: 'annual leave', maladie: 'sick leave', exceptionnel: 'special leave' }[type] || type;
-}
-
-function formatDateRange(debut, fin) {
-  const fmt = (d) => new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-  return debut === fin ? fmt(debut) : `${fmt(debut)} → ${fmt(fin)}`;
-}
-
-function formatNotificationDate(dateStr) {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
-}
+import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '@mui/material';
 
 export default function NotificationsPage() {
+  const { language, t } = useLanguage();
+  const theme = useTheme();
+
+  const STATUS_CONFIG = {
+    valide: {
+      label: t('notifications.statusApproved'),
+      icon: <CheckCircleIcon style={{ fontSize: 18, color: theme.palette.mode === 'dark' ? '#4ADE80' : '#2E7D32' }} />,
+      bg: theme.palette.mode === 'dark' ? '#1B4D22' : '#E8F5E9',
+      border: theme.palette.mode === 'dark' ? '#4ADE8033' : '#A5D6A7',
+      color: theme.palette.mode === 'dark' ? '#4ADE80' : '#2E7D32',
+      badgeBg: theme.palette.mode === 'dark' ? '#1B4D22' : '#E8F5E9',
+      badgeColor: theme.palette.mode === 'dark' ? '#4ADE80' : '#2E7D32',
+      message: (type) => t('notifications.approvedMsg', { type: getTranslatedTypeLabel(type) }),
+    },
+    refuse: {
+      label: t('notifications.statusRejected'),
+      icon: <CancelIcon style={{ fontSize: 18, color: theme.palette.mode === 'dark' ? '#EF4444' : '#C62828' }} />,
+      bg: theme.palette.mode === 'dark' ? '#3B1F1F' : '#FFEBEE',
+      border: theme.palette.mode === 'dark' ? '#EF444433' : '#FFCDD2',
+      color: theme.palette.mode === 'dark' ? '#EF4444' : '#C62828',
+      badgeBg: theme.palette.mode === 'dark' ? '#3B1F1F' : '#FFEBEE',
+      badgeColor: theme.palette.mode === 'dark' ? '#EF4444' : '#C62828',
+      message: (type) => t('notifications.rejectedMsg', { type: getTranslatedTypeLabel(type) }),
+    },
+    en_attente: {
+      label: t('notifications.statusPending'),
+      icon: <HourglassEmptyIcon style={{ fontSize: 18, color: theme.palette.mode === 'dark' ? '#F59E0B' : '#E65100' }} />,
+      bg: theme.palette.mode === 'dark' ? '#3B2F1F' : '#FFF8E1',
+      border: theme.palette.mode === 'dark' ? '#F59E0B33' : '#FFE082',
+      color: theme.palette.mode === 'dark' ? '#F59E0B' : '#E65100',
+      badgeBg: theme.palette.mode === 'dark' ? '#3B2F1F' : '#FFF8E1',
+      badgeColor: theme.palette.mode === 'dark' ? '#F59E0B' : '#E65100',
+      message: (type) => t('notifications.pendingMsg', { type: getTranslatedTypeLabel(type) }),
+    },
+  };
+
+  function getTranslatedTypeLabel(type) {
+    return {
+      annuel: t('notifications.annualLeave'),
+      maladie: t('notifications.sickLeave'),
+      exceptionnel: t('notifications.specialLeave')
+    }[type] || type;
+  }
+
+  function formatDateRange(debut, fin) {
+    const localeStr = language === 'fr' ? 'fr-FR' : 'en-US';
+    const fmt = (d) => new Date(d).toLocaleDateString(localeStr, { day: 'numeric', month: 'short' });
+    return debut === fin ? fmt(debut) : `${fmt(debut)} → ${fmt(fin)}`;
+  }
+
+  function formatNotificationDate(dateStr) {
+    if (!dateStr) return '';
+    const localeStr = language === 'fr' ? 'fr-FR' : 'en-US';
+    return new Date(dateStr).toLocaleDateString(localeStr, { day: 'numeric', month: 'long', year: 'numeric' });
+  }
   const [requests, setRequests] = useState([]);
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -101,8 +120,10 @@ export default function NotificationsPage() {
     return creationDate < limitDate;
   };
 
-  const fetchNotifications = async () => {
-    setLoading(true); setError('');
+  const fetchNotifications = async (silent = false) => {
+    if (!silent) {
+      setLoading(true); setError('');
+    }
     try {
       const [congeRes, reminderRes] = await Promise.all([
         api.get('/conge/me'),
@@ -111,14 +132,25 @@ export default function NotificationsPage() {
       setRequests(congeRes.data.data || []);
       setReminders(reminderRes.data.data || []);
     } catch (err) {
-      setError('Failed to load notifications.');
+      if (!silent) {
+        setError(t('notifications.errorLoad'));
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchNotifications();
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchNotifications(true);
+    }, 30000); // 30 seconds auto-refresh
+    return () => clearInterval(interval);
   }, []);
 
   const handleMarkAsRead = async (id) => {
@@ -136,7 +168,7 @@ export default function NotificationsPage() {
 
     // Validate size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      showToast("File size must not exceed 2 MB.", "error");
+      showToast(t('notifications.maxFileSizeError'), "error");
       e.target.value = "";
       return;
     }
@@ -144,7 +176,7 @@ export default function NotificationsPage() {
     // Validate type (images or PDF)
     const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
     if (!validTypes.includes(file.type) && !file.type.startsWith('image/')) {
-      showToast("Unsupported file format. Only images (JPEG, PNG, WEBP) and PDFs are allowed.", "error");
+      showToast(t('notifications.invalidFileTypeError'), "error");
       e.target.value = "";
       return;
     }
@@ -176,7 +208,7 @@ export default function NotificationsPage() {
       fetchNotifications();
     } catch (err) {
       console.error("Failed to send justification", err);
-      showToast("Error sending justification.", "error");
+      showToast(t('notifications.errorSendJustification'), "error");
     } finally {
       setSubmitLoading(false);
     }
@@ -194,7 +226,7 @@ export default function NotificationsPage() {
   return (
     <div className="page-container" style={{
       marginLeft: 240, height: '100vh', overflow: 'hidden',
-      backgroundColor: '#F5F6FA', fontFamily: 'Inter, system-ui, sans-serif',
+      backgroundColor: theme.palette.background.default, fontFamily: 'Inter, system-ui, sans-serif',
       display: 'flex', flexDirection: 'column',
       padding: '28px 32px', boxSizing: 'border-box', gap: 14,
     }}>
@@ -202,28 +234,28 @@ export default function NotificationsPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1a2340', margin: '0 0 4px' }}>Notifications</h1>
-          <p style={{ fontSize: 13, color: '#7A8A99', margin: 0 }}>Status of your leaves and AI attendance alerts</p>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: theme.palette.text.primary, margin: '0 0 4px' }}>{t('notifications.title')}</h1>
+          <p style={{ fontSize: 13, color: theme.palette.text.secondary, margin: 0 }}>{t('notifications.subtitle')}</p>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <button
             onClick={toggleRules}
             style={{
-              background: 'none', border: 'none', color: '#1976D2', cursor: 'pointer',
+              background: 'none', border: 'none', color: theme.palette.primary.main, cursor: 'pointer',
               fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px'
             }}
           >
-            <InfoIcon style={{ fontSize: '16px' }} /> {showRules ? "Hide rules" : "Show rules"}
+            <InfoIcon style={{ fontSize: '16px' }} /> {showRules ? t('notifications.hideRules') : t('notifications.showRules')}
           </button>
           <button onClick={fetchNotifications} style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px',
-            background: '#fff', border: '1px solid #E8EAED', borderRadius: 8, cursor: 'pointer',
-            fontSize: 13, fontWeight: 600, color: '#1a2340', transition: 'border-color 0.2s',
+            background: theme.palette.background.paper, border: `1px solid ${theme.palette.divider}`, borderRadius: 8, cursor: 'pointer',
+            fontSize: 13, fontWeight: 600, color: theme.palette.text.primary, transition: 'border-color 0.2s',
           }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = '#1976D2'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = '#E8EAED'}
+            onMouseEnter={e => e.currentTarget.style.borderColor = theme.palette.primary.main}
+            onMouseLeave={e => e.currentTarget.style.borderColor = theme.palette.divider}
           >
-            <RefreshIcon style={{ fontSize: 16 }} /> Refresh
+            <RefreshIcon style={{ fontSize: 16 }} /> {t('notifications.refresh')}
           </button>
         </div>
       </div>
@@ -232,14 +264,14 @@ export default function NotificationsPage() {
       {totalNotificationCount > 0 && (
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           {[
-            { label: 'All', count: totalNotificationCount, color: '#1976D2', bg: '#E3F2FD' },
-            { label: 'AI Reminders', count: reminders.length, color: '#1565C0', bg: '#BBDEFB' },
-            { label: 'Approved Leaves', count: requests.filter(r => r.statut === 'valide').length, color: '#2E7D32', bg: '#E8F5E9' },
-            { label: 'Pending', count: requests.filter(r => r.statut === 'en_attente').length, color: '#E65100', bg: '#FFF8E1' },
+            { label: t('notifications.allPill'), count: totalNotificationCount, color: '#1976D2', bg: '#E3F2FD' },
+            { label: t('notifications.aiPill'), count: reminders.length, color: '#1565C0', bg: '#BBDEFB' },
+            { label: t('notifications.approvedPill'), count: requests.filter(r => r.statut === 'valide').length, color: '#2E7D32', bg: '#E8F5E9' },
+            { label: t('notifications.pendingPill'), count: requests.filter(r => r.statut === 'en_attente').length, color: '#E65100', bg: '#FFF8E1' },
           ].map(({ label, count, color, bg }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 20, background: '#fff', border: '1px solid #E8EAED', fontSize: 12, fontWeight: 600, color: '#1a2340' }}>
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 20, background: theme.palette.background.paper, border: `1px solid ${theme.palette.divider}`, fontSize: 12, fontWeight: 600, color: theme.palette.text.primary }}>
               {label}
-              <span style={{ padding: '1px 7px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: bg, color }}>{count}</span>
+              <span style={{ padding: '1px 7px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: theme.palette.mode === 'dark' ? 'rgba(38,115,221,0.14)' : bg, color: theme.palette.mode === 'dark' ? '#F8FAFC' : color }}>{count}</span>
             </div>
           ))}
         </div>
@@ -250,9 +282,9 @@ export default function NotificationsPage() {
         <div style={{
           padding: '12px 16px',
           borderRadius: '8px',
-          backgroundColor: '#FFF8E1',
-          border: '1px solid #FFE082',
-          color: '#B78103',
+          backgroundColor: theme.palette.mode === 'dark' ? '#3B2F1F' : '#FFF8E1',
+          border: '1px solid ' + (theme.palette.mode === 'dark' ? '#5B4F3F' : '#FFE082'),
+          color: theme.palette.mode === 'dark' ? '#F8FAFC' : '#B78103',
           fontSize: '12px',
           lineHeight: '1.6',
           display: 'flex',
@@ -265,19 +297,19 @@ export default function NotificationsPage() {
             onClick={toggleRules}
             style={{
               position: 'absolute', top: '8px', right: '12px', background: 'none', border: 'none',
-              fontSize: '16px', fontWeight: '700', color: '#B78103', cursor: 'pointer'
+              fontSize: '16px', fontWeight: '700', color: theme.palette.mode === 'dark' ? '#F8FAFC' : '#B78103', cursor: 'pointer'
             }}
             title="Hide"
           >
             ×
           </button>
           <div style={{ fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <WarningIcon style={{ fontSize: '16px' }} /> Absence justification rules:
+            <WarningIcon style={{ fontSize: '16px' }} /> {t('notifications.rulesTitle')}
           </div>
           <ul style={{ margin: 0, paddingLeft: '18px' }}>
-            <li><strong>Deadline:</strong> You have <strong>72 hours (3 days)</strong> after receiving a reminder to submit a justification.</li>
-            <li><strong>File size:</strong> The justification file (image or PDF) must not exceed <strong>2 MB</strong>.</li>
-            <li><strong>Accepted formats:</strong> Only images (JPEG, PNG, WEBP) or PDF documents.</li>
+            <li><strong>{t('notifications.ruleDeadline').split(':')[0]}:</strong>{t('notifications.ruleDeadline').substring(t('notifications.ruleDeadline').indexOf(':') + 1)}</li>
+            <li><strong>{t('notifications.ruleSize').split(':')[0]}:</strong>{t('notifications.ruleSize').substring(t('notifications.ruleSize').indexOf(':') + 1)}</li>
+            <li><strong>{t('notifications.ruleFormat').split(':')[0]}:</strong>{t('notifications.ruleFormat').substring(t('notifications.ruleFormat').indexOf(':') + 1)}</li>
           </ul>
         </div>
       )}
@@ -286,23 +318,23 @@ export default function NotificationsPage() {
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 300px', gap: 16, minHeight: 0 }}>
 
         {/* Left: notifications list */}
-        <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ background: theme.palette.background.paper, border: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none', borderRadius: 12, boxShadow: theme.palette.mode === 'dark' ? '0 4px 20px rgba(0, 0, 0, 0.25)' : '0 2px 8px rgba(0,0,0,0.07)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {loading ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <p style={{ color: '#7A8A99', fontSize: 14 }}>Loading...</p>
+              <p style={{ color: theme.palette.text.secondary, fontSize: 14 }}>{t('notifications.loading')}</p>
             </div>
           ) : error ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-              <p style={{ color: '#C62828', fontSize: 13 }}>{error}</p>
-              <button onClick={fetchNotifications} style={{ padding: '7px 18px', background: '#F5F6FA', border: '1px solid #E8EAED', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Retry</button>
+              <p style={{ color: theme.palette.error.main, fontSize: 13 }}>{error}</p>
+              <button onClick={fetchNotifications} style={{ padding: '7px 18px', background: theme.palette.background.paper, border: `1px solid ${theme.palette.divider}`, color: theme.palette.text.primary, borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{t('notifications.retry')}</button>
             </div>
           ) : totalNotificationCount === 0 ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-              <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#F5F6FA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <NotificationsIcon style={{ fontSize: 26, color: '#B0BEC5' }} />
+              <div style={{ width: 52, height: 52, borderRadius: '50%', background: theme.palette.mode === 'dark' ? '#1E293B' : '#F5F6FA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <NotificationsIcon style={{ fontSize: 26, color: theme.palette.text.secondary }} />
               </div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: '#1a2340', margin: 0 }}>No notifications</p>
-              <p style={{ fontSize: 12, color: '#7A8A99', margin: 0 }}>You have no messages or pending requests.</p>
+              <p style={{ fontSize: 14, fontWeight: 700, color: theme.palette.text.primary, margin: 0 }}>{t('notifications.noNotifications')}</p>
+              <p style={{ fontSize: 12, color: theme.palette.text.secondary, margin: 0 }}>{t('notifications.noNotificationsDesc')}</p>
             </div>
           ) : (
             <div style={{ overflowY: 'auto', flex: 1 }}>
@@ -310,8 +342,8 @@ export default function NotificationsPage() {
               {/* Category 1: AI Absence Reminders */}
               {reminders.length > 0 && (
                 <>
-                  <div style={{ padding: '10px 18px 6px', background: '#FAFBFC', borderBottom: '1px solid #F0F2F5' }}>
-                    <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#1976D2', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Attendance Reminders (AI)</p>
+                  <div style={{ padding: '10px 18px 6px', background: theme.palette.mode === 'dark' ? '#1E293B' : '#FAFBFC', borderBottom: `1px solid ${theme.palette.divider}` }}>
+                    <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: theme.palette.primary.main, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('notifications.remindersHeader')}</p>
                   </div>
                   {reminders.map((notif, idx) => (
                     <div key={notif.id || idx} 
@@ -319,24 +351,24 @@ export default function NotificationsPage() {
                       style={{
                         display: 'flex', alignItems: 'flex-start', gap: 14,
                         padding: '14px 18px',
-                        borderBottom: idx < reminders.length - 1 ? '1px solid #F0F2F5' : 'none',
+                        borderBottom: idx < reminders.length - 1 ? `1px solid ${theme.palette.divider}` : 'none',
                         transition: 'background 0.15s',
                         cursor: notif.read ? 'default' : 'pointer',
-                        background: notif.read ? 'transparent' : '#F0F4F8'
+                        background: notif.read ? 'transparent' : (theme.palette.mode === 'dark' ? 'rgba(38, 115, 221, 0.14)' : '#F0F4F8')
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = notif.read ? '#FAFBFC' : '#E6ECF5'}
-                      onMouseLeave={e => e.currentTarget.style.background = notif.read ? 'transparent' : '#F0F4F8'}
+                      onMouseEnter={e => e.currentTarget.style.background = notif.read ? (theme.palette.mode === 'dark' ? '#1E293B' : '#FAFBFC') : (theme.palette.mode === 'dark' ? 'rgba(38, 115, 221, 0.25)' : '#E6ECF5')}
+                      onMouseLeave={e => e.currentTarget.style.background = notif.read ? 'transparent' : (theme.palette.mode === 'dark' ? 'rgba(38, 115, 221, 0.14)' : '#F0F4F8')}
                     >
-                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#E3F2FD', border: '1.5px solid #90CAF9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <SmartToyIcon style={{ fontSize: 18, color: '#1976D2' }} />
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: theme.palette.mode === 'dark' ? 'rgba(38, 115, 221, 0.14)' : '#E3F2FD', border: '1.5px solid ' + (theme.palette.mode === 'dark' ? 'rgba(38, 115, 221, 0.3)' : '#90CAF9'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <SmartToyIcon style={{ fontSize: 18, color: theme.palette.primary.main }} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 600, color: '#1a2340', lineHeight: 1.5 }}>
+                        <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 600, color: theme.palette.text.primary, lineHeight: 1.5 }}>
                           {notif.message}
                         </p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                          <span style={{ fontSize: 11, color: '#7A8A99' }}>
-                            Received: {formatNotificationDate(notif.date)}
+                          <span style={{ fontSize: 11, color: theme.palette.text.secondary }}>
+                            {t('notifications.receivedLabel', { date: formatNotificationDate(notif.date) })}
                           </span>
                         </div>
 
@@ -344,29 +376,32 @@ export default function NotificationsPage() {
                         {notif.justificationStatus === 'PENDING' && (
                           <div onClick={(e) => e.stopPropagation()}>
                             {isExpired(notif.date) ? (
-                              <span style={{ fontSize: 11, color: '#7A8A99', background: '#ECEFF1', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
-                                Justification deadline exceeded (72h) ⚠️
+                              <span style={{ fontSize: 11, color: theme.palette.text.secondary, background: theme.palette.mode === 'dark' ? '#1E293B' : '#ECEFF1', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
+                                {t('notifications.justifyExpired')}
                               </span>
                             ) : activeJustifyId === notif.id ? (
-                              <div style={{ marginTop: 10, padding: 12, background: '#FAFBFC', border: '1px solid #DDE1E7', borderRadius: 8 }}>
-                                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: '#1a2340' }}>Your justification message:</label>
+                              <div style={{ marginTop: 10, padding: 12, background: theme.palette.mode === 'dark' ? '#1E293B' : '#FAFBFC', border: `1px solid ${theme.palette.divider}`, borderRadius: 8 }}>
+                                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: theme.palette.text.primary }}>{t('notifications.justifyMsgLabel')}</label>
                                 <textarea
                                   value={responseMsg}
                                   onChange={(e) => setResponseMsg(e.target.value)}
-                                  placeholder="Explain the reason for your absence..."
+                                  placeholder={t('notifications.justifyMsgPlaceholder')}
                                   style={{
                                     width: '100%', height: 60, padding: 8, fontSize: 12,
-                                    border: '1px solid #D0D5DD', borderRadius: 6,
-                                    boxSizing: 'border-box', fontFamily: 'inherit', resize: 'none', marginBottom: 10
+                                    border: `1px solid ${theme.palette.divider}`, borderRadius: 6,
+                                    boxSizing: 'border-box', fontFamily: 'inherit', resize: 'none', marginBottom: 10,
+                                    backgroundColor: theme.palette.mode === 'dark' ? '#111827' : '#FFFFFF',
+                                    color: theme.palette.text.primary,
+                                    outline: 'none'
                                   }}
                                 />
 
-                                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: '#1a2340' }}>Medical certificate or justification document (Image/PDF):</label>
+                                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: theme.palette.text.primary }}>{t('notifications.justifyFileLabel')}</label>
                                 <input
                                   type="file"
                                   accept="image/*,application/pdf"
                                   onChange={handleFileChange}
-                                  style={{ fontSize: 11, marginBottom: 12, display: 'block' }}
+                                  style={{ fontSize: 11, marginBottom: 12, display: 'block', color: theme.palette.text.primary }}
                                 />
 
                                 <div style={{ display: 'flex', gap: 8 }}>
@@ -379,17 +414,17 @@ export default function NotificationsPage() {
                                       cursor: 'pointer'
                                     }}
                                   >
-                                    {submitLoading ? 'Sending...' : 'Submit Justification'}
+                                    {submitLoading ? t('notifications.btnSubmitting') : t('notifications.btnSubmitJustify')}
                                   </button>
                                   <button
                                     onClick={() => setActiveJustifyId(null)}
                                     style={{
-                                      padding: '6px 12px', background: '#FAFBFC', color: '#555',
-                                      border: '1px solid #DDE1E7', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                                      padding: '6px 12px', background: theme.palette.mode === 'dark' ? '#111827' : '#FAFBFC', color: theme.palette.text.secondary,
+                                      border: `1px solid ${theme.palette.divider}`, borderRadius: 6, fontSize: 12, fontWeight: 600,
                                       cursor: 'pointer'
                                     }}
                                   >
-                                    Cancel
+                                    {t('notifications.btnCancel')}
                                   </button>
                                 </div>
                               </div>
@@ -401,61 +436,64 @@ export default function NotificationsPage() {
                                   setFileInfo(null);
                                 }}
                                 style={{
-                                  padding: '5px 12px', background: '#1976D2', color: '#fff',
+                                  padding: '5px 12px', background: theme.palette.primary.main, color: '#fff',
                                   border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 600,
                                   cursor: 'pointer', marginTop: 4
                                 }}
                               >
-                                Provide Justification
+                                {t('notifications.btnProvideJustify')}
                               </button>
                             )}
                           </div>
                         )}
 
                         {notif.justificationStatus === 'JUSTIFIED' && (
-                          <div style={{ marginTop: 8, padding: 8, background: '#FFF8E1', border: '1px solid #FFE082', borderRadius: 6, fontSize: 12 }}>
-                            <span style={{ fontWeight: 600, color: '#E65100' }}>Justification submitted (HR Pending) ⏳</span>
-                            <p style={{ margin: '4px 0 0', fontSize: 11, color: '#4A5568' }}><strong>Your message:</strong> {notif.responseMessage}</p>
+                          <div style={{ marginTop: 8, padding: 8, background: theme.palette.mode === 'dark' ? '#3B2F1F' : '#FFF8E1', border: '1px solid ' + (theme.palette.mode === 'dark' ? '#5B4F3F' : '#FFE082'), borderRadius: 6, fontSize: 12 }}>
+                            <span style={{ fontWeight: 600, color: theme.palette.mode === 'dark' ? '#F59E0B' : '#E65100' }}>{t('notifications.justifyStatusPending')}</span>
+                            <p style={{ margin: '4px 0 0', fontSize: 11, color: theme.palette.text.secondary }}><strong>{language === 'fr' ? 'Votre message :' : 'Your message:'}</strong> {notif.responseMessage}</p>
                             {notif.responseAttachmentName && (
-                              <p style={{ margin: '2px 0 0', fontSize: 11, color: '#1976D2' }}>📎 {notif.responseAttachmentName}</p>
+                              <p style={{ margin: '2px 0 0', fontSize: 11, color: theme.palette.primary.main }}>📎 {notif.responseAttachmentName}</p>
                             )}
                           </div>
                         )}
 
                         {notif.justificationStatus === 'APPROVED' && (
-                          <div style={{ marginTop: 8, padding: 8, background: '#E8F5E9', border: '1px solid #A5D6A7', borderRadius: 6, fontSize: 12 }}>
-                            <span style={{ fontWeight: 600, color: '#2E7D32' }}>Justification approved by HR ✅</span>
-                            <p style={{ margin: '4px 0 0', fontSize: 11, color: '#4A5568' }}>The absence has been resolved in your history.</p>
+                          <div style={{ marginTop: 8, padding: 8, background: theme.palette.mode === 'dark' ? '#1B4D22' : '#E8F5E9', border: '1px solid ' + (theme.palette.mode === 'dark' ? '#4ADE8033' : '#A5D6A7'), borderRadius: 6, fontSize: 12 }}>
+                            <span style={{ fontWeight: 600, color: theme.palette.mode === 'dark' ? '#4ADE80' : '#2E7D32' }}>{t('notifications.justifyStatusApproved')}</span>
+                            <p style={{ margin: '4px 0 0', fontSize: 11, color: theme.palette.text.secondary }}>{t('notifications.justifyStatusApprovedDesc')}</p>
                           </div>
                         )}
 
                         {notif.justificationStatus === 'REJECTED' && (
-                          <div style={{ marginTop: 8, padding: 8, background: '#FFEBEE', border: '1px solid #FFCDD2', borderRadius: 6, fontSize: 12 }} onClick={(e) => e.stopPropagation()}>
-                            <span style={{ fontWeight: 600, color: '#C62828' }}>Justification rejected by HR ❌</span>
-                            <p style={{ margin: '4px 0 0', fontSize: 11, color: '#4A5568' }}>Please contact HR department to resolve.</p>
+                          <div style={{ marginTop: 8, padding: 8, background: theme.palette.mode === 'dark' ? '#3B1F1F' : '#FFEBEE', border: '1px solid ' + (theme.palette.mode === 'dark' ? '#EF444433' : '#FFCDD2'), borderRadius: 6, fontSize: 12 }} onClick={(e) => e.stopPropagation()}>
+                            <span style={{ fontWeight: 600, color: theme.palette.mode === 'dark' ? '#EF4444' : '#C62828' }}>{t('notifications.justifyStatusRejected')}</span>
+                            <p style={{ margin: '4px 0 0', fontSize: 11, color: theme.palette.text.secondary }}>{t('notifications.justifyStatusRejectedDesc')}</p>
                             
                             {/* Allow resubmission if rejected and not expired */}
                             {isExpired(notif.date) ? (
-                              <p style={{ margin: '6px 0 0', fontSize: 11, color: '#7A8A99', fontWeight: 600 }}>Resubmission deadline exceeded (72h since reminder) ⚠️</p>
+                              <p style={{ margin: '6px 0 0', fontSize: 11, color: theme.palette.text.secondary, fontWeight: 600 }}>{t('notifications.justifyResubmitExpired')}</p>
                             ) : activeJustifyId === notif.id ? (
-                              <div style={{ marginTop: 10, padding: 12, background: '#FAFBFC', border: '1px solid #DDE1E7', borderRadius: 8 }}>
-                                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: '#1a2340' }}>Your new message :</label>
+                              <div style={{ marginTop: 10, padding: 12, background: theme.palette.mode === 'dark' ? '#1E293B' : '#FAFBFC', border: `1px solid ${theme.palette.divider}`, borderRadius: 8 }}>
+                                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: theme.palette.text.primary }}>{language === 'fr' ? 'Votre nouveau message :' : 'Your new message :'}</label>
                                 <textarea
                                   value={responseMsg}
                                   onChange={(e) => setResponseMsg(e.target.value)}
-                                  placeholder="New explanation..."
+                                  placeholder={language === 'fr' ? 'Nouvelle explication...' : 'New explanation...'}
                                   style={{
                                     width: '100%', height: 60, padding: 8, fontSize: 12,
-                                    border: '1px solid #D0D5DD', borderRadius: 6,
-                                    boxSizing: 'border-box', fontFamily: 'inherit', resize: 'none', marginBottom: 10
+                                    border: `1px solid ${theme.palette.divider}`, borderRadius: 6,
+                                    boxSizing: 'border-box', fontFamily: 'inherit', resize: 'none', marginBottom: 10,
+                                    backgroundColor: theme.palette.mode === 'dark' ? '#111827' : '#FFFFFF',
+                                    color: theme.palette.text.primary,
+                                    outline: 'none'
                                   }}
                                 />
-                                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: '#1a2340' }}>New justification document :</label>
+                                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: theme.palette.text.primary }}>{language === 'fr' ? 'Nouveau document justificatif :' : 'New justification document :'}</label>
                                 <input
                                   type="file"
                                   accept="image/*,application/pdf"
                                   onChange={handleFileChange}
-                                  style={{ fontSize: 11, marginBottom: 12, display: 'block' }}
+                                  style={{ fontSize: 11, marginBottom: 12, display: 'block', color: theme.palette.text.primary }}
                                 />
                                 <div style={{ display: 'flex', gap: 8 }}>
                                   <button
@@ -467,17 +505,17 @@ export default function NotificationsPage() {
                                       cursor: 'pointer'
                                     }}
                                   >
-                                    {submitLoading ? 'Submitting...' : 'Resubmit Justification'}
+                                    {submitLoading ? t('notifications.btnSubmitting') : t('notifications.btnResubmitJustify')}
                                   </button>
                                   <button
                                     onClick={() => setActiveJustifyId(null)}
                                     style={{
-                                      padding: '6px 12px', background: '#FAFBFC', color: '#555',
-                                      border: '1px solid #DDE1E7', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                                      padding: '6px 12px', background: theme.palette.mode === 'dark' ? '#111827' : '#FAFBFC', color: theme.palette.text.secondary,
+                                      border: `1px solid ${theme.palette.divider}`, borderRadius: 6, fontSize: 12, fontWeight: 600,
                                       cursor: 'pointer'
                                     }}
                                   >
-                                    Cancel
+                                    {t('notifications.btnCancel')}
                                   </button>
                                 </div>
                               </div>
@@ -494,15 +532,15 @@ export default function NotificationsPage() {
                                   cursor: 'pointer', marginTop: 6
                                 }}
                               >
-                                Resubmit
+                                {t('notifications.btnResubmit')}
                               </button>
                             )}
                           </div>
                         )}
 
                       </div>
-                      <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: notif.read ? '#ECEFF1' : '#E3F2FD', color: notif.read ? '#607D8B' : '#1976D2', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                        {notif.read ? 'Read' : 'New'}
+                      <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: notif.read ? (theme.palette.mode === 'dark' ? '#1E293B' : '#ECEFF1') : (theme.palette.mode === 'dark' ? 'rgba(38,115,221,0.14)' : '#E3F2FD'), color: notif.read ? theme.palette.text.secondary : theme.palette.primary.main, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                        {notif.read ? t('notifications.statusRead') : t('notifications.statusNew')}
                       </span>
                     </div>
                   ))}
@@ -512,8 +550,8 @@ export default function NotificationsPage() {
               {/* Category 2: Pending Leave Requests */}
               {pending.length > 0 && (
                 <>
-                  <div style={{ padding: '10px 18px 6px', background: '#FAFBFC', borderBottom: '1px solid #F0F2F5', borderTop: reminders.length > 0 ? '1px solid #F0F2F5' : 'none' }}>
-                    <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#E65100', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pending responses</p>
+                  <div style={{ padding: '10px 18px 6px', background: theme.palette.mode === 'dark' ? '#1E293B' : '#FAFBFC', borderBottom: `1px solid ${theme.palette.divider}`, borderTop: reminders.length > 0 ? `1px solid ${theme.palette.divider}` : 'none' }}>
+                    <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: theme.palette.mode === 'dark' ? '#F59E0B' : '#E65100', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('notifications.pendingHeader')}</p>
                   </div>
                   {pending.map((req, idx) => {
                     const cfg = STATUS_CONFIG.en_attente;
@@ -521,21 +559,21 @@ export default function NotificationsPage() {
                       <div key={req.id || idx} style={{
                         display: 'flex', alignItems: 'flex-start', gap: 14,
                         padding: '14px 18px',
-                        borderBottom: idx < pending.length - 1 ? '1px solid #F0F2F5' : 'none',
+                        borderBottom: idx < pending.length - 1 ? `1px solid ${theme.palette.divider}` : 'none',
                         transition: 'background 0.15s',
                       }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#FAFBFC'}
+                        onMouseEnter={e => e.currentTarget.style.background = theme.palette.mode === 'dark' ? '#1E293B' : '#FAFBFC'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                       >
                         <div style={{ width: 36, height: 36, borderRadius: '50%', background: cfg.bg, border: `1.5px solid ${cfg.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           {cfg.icon}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 600, color: '#1a2340', lineHeight: 1.5 }}>
+                          <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 600, color: theme.palette.text.primary, lineHeight: 1.5 }}>
                             {cfg.message(req.type)}
                           </p>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 11, color: '#7A8A99', display: 'flex', alignItems: 'center', gap: 3 }}>
+                            <span style={{ fontSize: 11, color: theme.palette.text.secondary, display: 'flex', alignItems: 'center', gap: 3 }}>
                               <EventNoteIcon style={{ fontSize: 12 }} /> {formatDateRange(req.dateDebut, req.dateFin)}
                             </span>
                           </div>
@@ -552,8 +590,8 @@ export default function NotificationsPage() {
               {/* Category 3: Responded Leave Requests */}
               {responded.length > 0 && (
                 <>
-                  <div style={{ padding: '10px 18px 6px', background: '#FAFBFC', borderBottom: '1px solid #F0F2F5', borderTop: (reminders.length > 0 || pending.length > 0) ? '1px solid #F0F2F5' : 'none' }}>
-                    <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#2E7D32', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Leave request history</p>
+                  <div style={{ padding: '10px 18px 6px', background: theme.palette.mode === 'dark' ? '#1E293B' : '#FAFBFC', borderBottom: `1px solid ${theme.palette.divider}`, borderTop: (reminders.length > 0 || pending.length > 0) ? `1px solid ${theme.palette.divider}` : 'none' }}>
+                    <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: theme.palette.mode === 'dark' ? '#4ADE80' : '#2E7D32', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('notifications.historyHeader')}</p>
                   </div>
                   {responded.map((req, idx) => {
                     const cfg = STATUS_CONFIG[req.statut] || STATUS_CONFIG.en_attente;
@@ -561,21 +599,21 @@ export default function NotificationsPage() {
                       <div key={req.id || idx} style={{
                         display: 'flex', alignItems: 'flex-start', gap: 14,
                         padding: '14px 18px',
-                        borderBottom: idx < responded.length - 1 ? '1px solid #F0F2F5' : 'none',
+                        borderBottom: idx < responded.length - 1 ? `1px solid ${theme.palette.divider}` : 'none',
                         transition: 'background 0.15s',
                       }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#FAFBFC'}
+                        onMouseEnter={e => e.currentTarget.style.background = theme.palette.mode === 'dark' ? '#1E293B' : '#FAFBFC'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                       >
                         <div style={{ width: 36, height: 36, borderRadius: '50%', background: cfg.bg, border: `1.5px solid ${cfg.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           {cfg.icon}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 600, color: '#1a2340', lineHeight: 1.5 }}>
+                          <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 600, color: theme.palette.text.primary, lineHeight: 1.5 }}>
                             {cfg.message(req.type)}
                           </p>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 11, color: '#7A8A99', display: 'flex', alignItems: 'center', gap: 3 }}>
+                            <span style={{ fontSize: 11, color: theme.palette.text.secondary, display: 'flex', alignItems: 'center', gap: 3 }}>
                               <EventNoteIcon style={{ fontSize: 12 }} /> {formatDateRange(req.dateDebut, req.dateFin)}
                             </span>
                           </div>
@@ -594,40 +632,40 @@ export default function NotificationsPage() {
         </div>
 
         {/* Right: legend + tips */}
-        <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', padding: '20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ background: theme.palette.background.paper, border: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none', borderRadius: 12, boxShadow: theme.palette.mode === 'dark' ? '0 4px 20px rgba(0, 0, 0, 0.25)' : '0 2px 8px rgba(0,0,0,0.07)', padding: '20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div>
-            <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#1a2340' }}>Status Legend</p>
+            <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: theme.palette.text.primary }}>{t('notifications.legendTitle')}</p>
             {[
-              { color: '#1976D2', bg: '#E3F2FD', border: '#90CAF9', label: 'AI Reminder', desc: 'Attendance alert 🤖' },
-              { color: '#2E7D32', bg: '#E8F5E9', border: '#A5D6A7', label: 'Approved', desc: 'Leave granted ✅' },
-              { color: '#C62828', bg: '#FFEBEE', border: '#FFCDD2', label: 'Rejected', desc: 'Leave rejected ❌' },
-              { color: '#E65100', bg: '#FFF8E1', border: '#FFE082', label: 'Pending', desc: 'Under review 🕐' },
+              { color: theme.palette.mode === 'dark' ? '#2673DD' : '#1976D2', bg: theme.palette.mode === 'dark' ? 'rgba(38, 115, 221, 0.14)' : '#E3F2FD', border: theme.palette.mode === 'dark' ? 'rgba(38, 115, 221, 0.3)' : '#90CAF9', label: t('notifications.legendAiReminder'), desc: t('notifications.legendAiReminderDesc') },
+              { color: theme.palette.mode === 'dark' ? '#4ADE80' : '#2E7D32', bg: theme.palette.mode === 'dark' ? '#1B4D22' : '#E8F5E9', border: theme.palette.mode === 'dark' ? '#4ADE8033' : '#A5D6A7', label: t('notifications.legendApproved'), desc: t('notifications.legendApprovedDesc') },
+              { color: theme.palette.mode === 'dark' ? '#EF4444' : '#C62828', bg: theme.palette.mode === 'dark' ? '#3B1F1F' : '#FFEBEE', border: theme.palette.mode === 'dark' ? '#EF444433' : '#FFCDD2', label: t('notifications.legendRejected'), desc: t('notifications.legendRejectedDesc') },
+              { color: theme.palette.mode === 'dark' ? '#F59E0B' : '#E65100', bg: theme.palette.mode === 'dark' ? '#3B2F1F' : '#FFF8E1', border: theme.palette.mode === 'dark' ? '#F59E0B33' : '#FFE082', label: t('notifications.legendPending'), desc: t('notifications.legendPendingDesc') },
             ].map(({ color, bg, border, label, desc }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: bg, border: `1px solid ${border}`, marginBottom: 8 }}>
                 <div style={{ width: 9, height: 9, borderRadius: '50%', background: color, flexShrink: 0 }} />
                 <div>
                   <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color }}>{label}</p>
-                  <p style={{ margin: 0, fontSize: 11, color: '#7A8A99' }}>{desc}</p>
+                  <p style={{ margin: 0, fontSize: 11, color: theme.palette.text.secondary }}>{desc}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <div style={{ borderTop: '1px solid #F0F2F5', paddingTop: 14 }}>
-            <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#1a2340' }}>ℹ️ Reminders</p>
+          <div style={{ borderTop: `1px solid ${theme.palette.divider}`, paddingTop: 14 }}>
+            <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: theme.palette.text.primary }}>{t('notifications.infoTitle')}</p>
             {[
-              'AI alerts require your immediate attention.',
-              'Submit your leave requests in advance.',
-              'Response within 48 business hours.',
-              'Check this page regularly.',
+              t('notifications.infoTip1'),
+              t('notifications.infoTip2'),
+              t('notifications.infoTip3'),
+              t('notifications.infoTip4'),
             ].map((tip, i) => (
-              <p key={i} style={{ margin: '0 0 8px', fontSize: 12, color: '#4A5568', lineHeight: 1.6, paddingLeft: 10, borderLeft: '2px solid #E3F2FD' }}>{tip}</p>
+              <p key={i} style={{ margin: '0 0 8px', fontSize: 12, color: theme.palette.text.secondary, lineHeight: 1.6, paddingLeft: 10, borderLeft: `2px solid ${theme.palette.mode === 'dark' ? '#1E293B' : '#E3F2FD'}` }}>{tip}</p>
             ))}
           </div>
 
-          <div style={{ borderTop: '1px solid #F0F2F5', paddingTop: 14, marginTop: 'auto' }}>
-            <p style={{ margin: 0, fontSize: 11, color: '#B0BEC5', lineHeight: 1.7 }}>
-              📧 hr@company.com<br />🕐 Mon–Fri 09:00 AM–05:00 PM
+          <div style={{ borderTop: `1px solid ${theme.palette.divider}`, paddingTop: 14, marginTop: 'auto' }}>
+            <p style={{ margin: 0, fontSize: 11, color: theme.palette.text.secondary, lineHeight: 1.7 }}>
+              📧 hr@company.com<br />🕐 {t('notifications.footerHours')}
             </p>
           </div>
         </div>

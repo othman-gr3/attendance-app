@@ -5,7 +5,7 @@ import {
     Chip, IconButton, CircularProgress, Alert,
     Avatar, Tooltip, Button, Dialog, DialogTitle,
     DialogContent, DialogActions, TextField, MenuItem,
-    InputAdornment, Drawer, Divider
+    InputAdornment, Drawer, Divider, useTheme
 } from '@mui/material';
 import {
     Delete, Person, PersonAdd, Visibility, VisibilityOff,
@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material';
 import api from '../../api/axios';
 import Navbar from '../../components/Navbar';
+import { useLanguage } from '../../context/LanguageContext';
 
 const PRIMARY = '#0F2942';
 
@@ -22,6 +23,8 @@ const emptyForm = {
 };
 
 export default function EmployeeListPage() {
+    const { t } = useLanguage();
+    const theme = useTheme();
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -69,29 +72,36 @@ export default function EmployeeListPage() {
 
 
 
-    const fetchEmployees = async () => {
+    const fetchEmployees = async (silent = false) => {
+        if (!silent) {
+            setLoading(true);
+        }
         try {
             const res = await api.get('/users');
             setEmployees(res.data);
         } catch (err) {
-            setError('Failed to load employees');
+            if (!silent) {
+                setError(t('employees.errorLoad'));
+            }
         } finally {
-            setLoading(false);
+            if (!silent) {
+                setLoading(false);
+            }
         }
     };
 
     const handleDelete = (id) => {
         setConfirmDialog({
             open: true,
-            title: 'Delete Employee',
-            message: 'Are you sure you want to delete this employee? This action cannot be undone.',
+            title: t('employees.confirmTitle'),
+            message: t('employees.confirmMsg'),
             onConfirm: async () => {
                 try {
                     await api.delete(`/users/${id}`);
                     setEmployees(prev => prev.filter(e => e.id !== id));
-                    showToast('Employee deleted successfully', 'success');
+                    showToast(t('employees.successDelete'), 'success');
                 } catch {
-                    showToast('Failed to delete employee', 'error');
+                    showToast(t('employees.errorDelete'), 'error');
                 }
             }
         });
@@ -112,10 +122,10 @@ export default function EmployeeListPage() {
                     delete payload.password;
                 }
                 await api.put(`/users/${editingEmployeeId}`, payload);
-                setSuccess('Employee updated successfully');
+                setSuccess(t('employees.successUpdate'));
             } else {
                 await api.post('/auth/register', form);
-                setSuccess('Employee added successfully');
+                setSuccess(t('employees.successAdd'));
             }
             setTimeout(() => setSuccess(''), 3000);
             setOpenModal(false);
@@ -124,7 +134,7 @@ export default function EmployeeListPage() {
             setEditingEmployeeId(null);
             fetchEmployees();
         } catch (err) {
-            setFormError(err.response?.data?.error || `Failed to ${isEditMode ? 'update' : 'create'} employee`);
+            setFormError(err.response?.data?.error || (isEditMode ? t('employees.errorUpdate') : t('employees.errorAdd')));
         } finally {
             setFormLoading(false);
         }
@@ -160,7 +170,7 @@ export default function EmployeeListPage() {
         const file = e.target.files?.[0];
         if (!file) return;
         if (file.size > 2 * 1024 * 1024) {
-            showToast('Maximum file size is 2 MB.', 'error');
+            showToast(t('employees.maxSizeError'), 'error');
             return;
         }
         const reader = new FileReader();
@@ -171,7 +181,7 @@ export default function EmployeeListPage() {
                 setSelectedEmployee(prev => prev ? { ...prev, profilePic: base64Url } : null);
                 setEmployees(prev => prev.map(emp => emp.id === empId ? { ...emp, profilePic: base64Url } : emp));
             } catch (err) {
-                showToast("Failed to update profile picture", 'error');
+                showToast(t('employees.errorUpdatePic'), 'error');
             }
         };
         reader.readAsDataURL(file);
@@ -183,7 +193,7 @@ export default function EmployeeListPage() {
             setSelectedEmployee(prev => prev ? { ...prev, profilePic: null } : null);
             setEmployees(prev => prev.map(emp => emp.id === empId ? { ...emp, profilePic: null } : emp));
         } catch (err) {
-            showToast("Failed to remove profile picture", 'error');
+            showToast(t('employees.errorRemovePic'), 'error');
         }
     };
 
@@ -197,7 +207,7 @@ export default function EmployeeListPage() {
                 delete payload.password;
             }
             const res = await api.put(`/users/${selectedEmployee.id}`, payload);
-            setSuccess('Employee updated successfully');
+            setSuccess(t('employees.successUpdate'));
             setTimeout(() => setSuccess(''), 3000);
             
             const updatedUser = res.data;
@@ -205,7 +215,7 @@ export default function EmployeeListPage() {
             setEmployees(prev => prev.map(emp => emp.id === updatedUser.id ? updatedUser : emp));
             setIsDrawerEditMode(false);
         } catch (err) {
-            setDrawerError(err.response?.data?.error || 'Failed to update employee');
+            setDrawerError(err.response?.data?.error || t('employees.errorUpdate'));
         } finally {
             setDrawerLoading(false);
         }
@@ -219,7 +229,13 @@ export default function EmployeeListPage() {
         setFormError('');
     };
 
-    useEffect(() => { fetchEmployees(); }, []);
+    useEffect(() => {
+        fetchEmployees();
+        const interval = setInterval(() => {
+            fetchEmployees(true);
+        }, 30000); // 30 seconds auto-refresh
+        return () => clearInterval(interval);
+    }, []);
 
     const getInitials = (name) => {
         if (!name) return '?';
@@ -229,7 +245,7 @@ export default function EmployeeListPage() {
     const pageStyle = {
         marginLeft: '240px',
         padding: '40px',
-        backgroundColor: '#F5F6FA',
+        backgroundColor: theme.palette.background.default,
         minHeight: '100vh',
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
     };
@@ -241,13 +257,13 @@ export default function EmployeeListPage() {
     const titleStyle = {
         fontSize: '28px',
         fontWeight: '700',
-        color: '#1a2340',
+        color: theme.palette.text.primary,
         margin: '0 0 8px 0',
     };
 
     const subtitleStyle = {
         fontSize: '14px',
-        color: '#7A8A99',
+        color: theme.palette.text.secondary,
         margin: '0',
     };
 
@@ -263,7 +279,7 @@ export default function EmployeeListPage() {
         alignItems: 'center',
         gap: '8px',
         padding: '12px 24px',
-        backgroundColor: '#1976D2',
+        backgroundColor: theme.palette.primary.main,
         color: '#FFFFFF',
         border: 'none',
         borderRadius: '8px',
@@ -281,16 +297,19 @@ export default function EmployeeListPage() {
     };
 
     const statCardStyle = (color) => ({
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.palette.background.paper,
         borderRadius: '12px',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+        boxShadow: theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.25)' : '0 2px 12px rgba(0,0,0,0.06)',
         padding: '24px',
         borderLeft: `4px solid ${color}`,
+        borderTop: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none',
+        borderRight: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none',
+        borderBottom: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none',
     });
 
     const statLabelStyle = {
         fontSize: '12px',
-        color: '#7A8A99',
+        color: theme.palette.text.secondary,
         fontWeight: '500',
         marginBottom: '12px',
     };
@@ -298,14 +317,15 @@ export default function EmployeeListPage() {
     const statValueStyle = {
         fontSize: '32px',
         fontWeight: '700',
-        color: '#1a2340',
+        color: theme.palette.text.primary,
     };
 
     const cardStyle = {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.palette.background.paper,
         borderRadius: '12px',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+        boxShadow: theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.25)' : '0 2px 12px rgba(0,0,0,0.06)',
         padding: '32px',
+        border: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none',
     };
 
     const messageStyle = (type) => ({
@@ -314,8 +334,15 @@ export default function EmployeeListPage() {
         marginBottom: '24px',
         fontSize: '14px',
         fontWeight: '500',
-        backgroundColor: type === 'success' ? '#E8F5E9' : '#FFEBEE',
-        color: type === 'success' ? '#2E7D32' : '#C62828',
+        backgroundColor: type === 'success' 
+            ? (theme.palette.mode === 'dark' ? 'rgba(46, 125, 50, 0.15)' : '#E8F5E9') 
+            : (theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.15)' : '#FFEBEE'),
+        color: type === 'success' 
+            ? (theme.palette.mode === 'dark' ? '#81C784' : '#2E7D32') 
+            : (theme.palette.mode === 'dark' ? '#F87171' : '#C62828'),
+        border: `1px solid ${type === 'success' 
+            ? (theme.palette.mode === 'dark' ? 'rgba(46, 125, 50, 0.3)' : '#A5D6A7') 
+            : (theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.3)' : '#FFCDD2')}`,
     });
 
     const tableStyle = {
@@ -324,27 +351,27 @@ export default function EmployeeListPage() {
     };
 
     const thStyle = {
-        backgroundColor: '#F5F6FA',
+        backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#F5F6FA',
         padding: '12px 16px',
         textAlign: 'left',
         fontSize: '12px',
         fontWeight: '600',
-        color: '#1a2340',
-        borderBottom: '2px solid #E8EAED',
+        color: theme.palette.text.primary,
+        borderBottom: `2px solid ${theme.palette.divider}`,
     };
 
     const tdStyle = {
         padding: '16px',
-        borderBottom: '1px solid #E8EAED',
+        borderBottom: `1px solid ${theme.palette.divider}`,
         fontSize: '13px',
-        color: '#1a2340',
+        color: theme.palette.text.primary,
     };
 
     const avatarStyle = {
         width: '38px',
         height: '38px',
         borderRadius: '50%',
-        backgroundColor: '#1976D2',
+        backgroundColor: theme.palette.primary.main,
         color: '#FFFFFF',
         display: 'flex',
         alignItems: 'center',
@@ -365,8 +392,12 @@ export default function EmployeeListPage() {
         borderRadius: '12px',
         fontSize: '12px',
         fontWeight: '600',
-        color: '#FFFFFF',
-        backgroundColor: role === 'ROLE_ADMIN' ? '#1a2340' : '#1976D2',
+        color: role === 'ROLE_ADMIN' 
+            ? (theme.palette.mode === 'dark' ? '#F87171' : '#FFFFFF') 
+            : (theme.palette.mode === 'dark' ? '#60A5FA' : '#FFFFFF'),
+        backgroundColor: role === 'ROLE_ADMIN' 
+            ? (theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.2)' : '#1a2340') 
+            : (theme.palette.mode === 'dark' ? 'rgba(38, 115, 221, 0.2)' : theme.palette.primary.main),
     });
 
     const modalOverlayStyle = {
@@ -375,7 +406,7 @@ export default function EmployeeListPage() {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -383,19 +414,20 @@ export default function EmployeeListPage() {
     };
 
     const modalContentStyle = {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.palette.background.paper,
         borderRadius: '12px',
         padding: '32px',
         maxWidth: '500px',
         width: '90%',
         maxHeight: '90vh',
         overflowY: 'auto',
+        border: `1px solid ${theme.palette.divider}`,
     };
 
     const modalTitleStyle = {
         fontSize: '20px',
         fontWeight: '700',
-        color: '#1a2340',
+        color: theme.palette.text.primary,
         margin: '0 0 24px 0',
     };
 
@@ -407,7 +439,7 @@ export default function EmployeeListPage() {
         display: 'block',
         fontSize: '13px',
         fontWeight: '600',
-        color: '#1a2340',
+        color: theme.palette.text.primary,
         marginBottom: '8px',
     };
 
@@ -415,16 +447,18 @@ export default function EmployeeListPage() {
         width: '100%',
         padding: '10px 12px',
         fontSize: '14px',
-        border: '1px solid #D0D5DD',
+        border: `1px solid ${theme.palette.divider}`,
         borderRadius: '8px',
         fontFamily: 'inherit',
         boxSizing: 'border-box',
+        backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#FFFFFF',
+        color: theme.palette.text.primary,
     };
 
     const submitButtonStyle = {
         width: '100%',
         padding: '12px',
-        backgroundColor: '#1976D2',
+        backgroundColor: theme.palette.primary.main,
         color: '#FFFFFF',
         fontSize: '14px',
         fontWeight: '600',
@@ -450,14 +484,14 @@ export default function EmployeeListPage() {
         fontSize: '20px',
         cursor: 'pointer',
         marginLeft: 'auto',
-        color: '#666',
+        color: theme.palette.text.secondary,
     };
 
     return (
         <div className="page-container" style={pageStyle}>
             <div style={headerStyle}>
-                <h1 style={titleStyle}>Employees</h1>
-                <p style={subtitleStyle}>Manage your team members</p>
+                <h1 style={titleStyle}>{t('employees.title')}</h1>
+                <p style={subtitleStyle}>{t('employees.subtitle')}</p>
             </div>
 
             {success && <div style={messageStyle('success')}>{success}</div>}
@@ -477,22 +511,22 @@ export default function EmployeeListPage() {
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1976D2'}
                 >
                     <PersonAdd style={{ fontSize: '18px' }} />
-                    Add Employee
+                    {t('employees.btnRegister')}
                 </button>
             </div>
 
             {/* Stat Cards */}
             <div style={statCardsStyle}>
                 <div style={statCardStyle('#1a2340')}>
-                    <div style={statLabelStyle}>Total Employee</div>
+                    <div style={statLabelStyle}>{t('employees.statTotal')}</div>
                     <div style={statValueStyle}>{employees.length}</div>
                 </div>
                 <div style={statCardStyle('#1976D2')}>
-                    <div style={statLabelStyle}>Admins</div>
+                    <div style={statLabelStyle}>{t('employees.statAdmins')}</div>
                     <div style={statValueStyle}>{employees.filter(e => e.role === 'ROLE_ADMIN').length}</div>
                 </div>
                 <div style={statCardStyle('#4CAF50')}>
-                    <div style={statLabelStyle}>Employees</div>
+                    <div style={statLabelStyle}>{t('employees.statEmployees')}</div>
                     <div style={statValueStyle}>{employees.filter(e => e.role === 'ROLE_EMPLOYE').length}</div>
                 </div>
             </div>
@@ -500,23 +534,23 @@ export default function EmployeeListPage() {
             {/* Employee Table */}
             <div style={cardStyle}>
                 {loading ? (
-                    <p>Loading...</p>
+                    <p>{t('employees.loading')}</p>
                 ) : employees.length === 0 ? (
-                    <p style={{ color: '#7A8A99' }}>No employees found</p>
+                    <p style={{ color: '#7A8A99' }}>{t('employees.noEmployees')}</p>
                 ) : (
                     <table style={tableStyle}>
                         <thead>
                             <tr>
-                                <th style={thStyle}>Name</th>
-                                <th style={thStyle}>Email</th>
-                                <th style={thStyle}>Role</th>
+                                <th style={thStyle}>{t('employees.colName')}</th>
+                                <th style={thStyle}>{t('employees.colEmail')}</th>
+                                <th style={thStyle}>{t('employees.colRole')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {employees.map((emp) => (
                                 <tr key={emp.id} style={{ transition: 'background-color 0.2s ease', cursor: 'pointer' }}
                                     onClick={() => handleViewEmployee(emp)}
-                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F6FA'}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#F5F6FA'}
                                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                 >
                                     <td style={tdStyle}>
@@ -534,7 +568,7 @@ export default function EmployeeListPage() {
                                     <td style={tdStyle}>{emp.email}</td>
                                     <td style={tdStyle}>
                                         <span style={rolebadgeStyle(emp.role)}>
-                                            {emp.role === 'ROLE_ADMIN' ? 'Admin' : 'Employee'}
+                                            {emp.role === 'ROLE_ADMIN' ? t('employees.roleAdmin') : t('employees.roleEmployee')}
                                         </span>
                                     </td>
                                 </tr>
@@ -549,7 +583,7 @@ export default function EmployeeListPage() {
                 <div style={modalOverlayStyle} onClick={handleCloseModal}>
                     <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <h2 style={modalTitleStyle}>{isEditMode ? 'Edit Employee' : 'Add New Employee'}</h2>
+                            <h2 style={modalTitleStyle}>{isEditMode ? t('employees.modalEditTitle') : t('employees.modalAddTitle')}</h2>
                             <button
                                 onClick={handleCloseModal}
                                 style={closeButtonStyle}
@@ -562,7 +596,7 @@ export default function EmployeeListPage() {
 
                         <form onSubmit={handleFormSubmit}>
                             <div style={formGroupStyle}>
-                                <label style={labelStyle}>Full Name</label>
+                                <label style={labelStyle}>{t('employees.fieldFullName')}</label>
                                 <input
                                     type="text"
                                     name="nom"
@@ -570,12 +604,12 @@ export default function EmployeeListPage() {
                                     onChange={handleFormChange}
                                     required
                                     style={inputStyle}
-                                    placeholder="Enter full name"
+                                    placeholder={t('employees.placeholderFullName')}
                                 />
                             </div>
 
                             <div style={formGroupStyle}>
-                                <label style={labelStyle}>Email Address</label>
+                                <label style={labelStyle}>{t('employees.fieldEmail')}</label>
                                 <input
                                     type="email"
                                     name="email"
@@ -583,12 +617,12 @@ export default function EmployeeListPage() {
                                     onChange={handleFormChange}
                                     required
                                     style={inputStyle}
-                                    placeholder="Enter email"
+                                    placeholder={t('employees.placeholderEmail')}
                                 />
                             </div>
 
                             <div style={formGroupStyle}>
-                                <label style={labelStyle}>{isEditMode ? 'Password (Optional)' : 'Password'}</label>
+                                <label style={labelStyle}>{isEditMode ? t('employees.fieldPasswordOptional') : t('employees.fieldPassword')}</label>
                                 <div style={{ position: 'relative' }}>
                                     <input
                                         type={showPassword ? 'text' : 'password'}
@@ -597,7 +631,7 @@ export default function EmployeeListPage() {
                                         onChange={handleFormChange}
                                         required={!isEditMode}
                                         style={{ ...inputStyle, paddingRight: '40px' }}
-                                        placeholder={isEditMode ? "Leave empty to keep current" : "Enter password"}
+                                        placeholder={isEditMode ? t('employees.placeholderPasswordOptional') : t('employees.placeholderPassword')}
                                     />
                                     <button
                                         type="button"
@@ -610,7 +644,7 @@ export default function EmployeeListPage() {
                                             background: 'none',
                                             border: 'none',
                                             cursor: 'pointer',
-                                            color: '#666',
+                                            color: theme.palette.text.secondary,
                                         }}
                                     >
                                         {showPassword ? <VisibilityOff /> : <Visibility />}
@@ -619,15 +653,15 @@ export default function EmployeeListPage() {
                             </div>
 
                             <div style={formGroupStyle}>
-                                <label style={labelStyle}>Role</label>
+                                <label style={labelStyle}>{t('employees.fieldRole')}</label>
                                 <select
                                     name="role"
                                     value={form.role}
                                     onChange={handleFormChange}
                                     style={inputStyle}
                                 >
-                                    <option value="ROLE_EMPLOYE">Employee</option>
-                                    <option value="ROLE_ADMIN">Admin</option>
+                                    <option value="ROLE_EMPLOYE">{t('employees.roleEmployee')}</option>
+                                    <option value="ROLE_ADMIN">{t('employees.roleAdmin')}</option>
                                 </select>
                             </div>
 
@@ -646,7 +680,7 @@ export default function EmployeeListPage() {
                                     e.currentTarget.style.backgroundColor = '#1976D2';
                                 }}
                             >
-                                {formLoading ? (isEditMode ? 'Saving...' : 'Adding...') : (isEditMode ? 'Save Changes' : 'Add Employee')}
+                                {formLoading ? (isEditMode ? t('employees.btnSaving') : t('employees.btnAdding')) : (isEditMode ? t('employees.btnSave') : t('employees.btnRegister'))}
                             </button>
                         </form>
                     </div>
@@ -665,8 +699,10 @@ export default function EmployeeListPage() {
                     sx: {
                         width: { xs: '100%', sm: 400 },
                         padding: '32px 24px',
-                        backgroundColor: '#FFFFFF',
+                        backgroundColor: theme.palette.background.paper,
                         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+                        backgroundImage: 'none',
+                        color: theme.palette.text.primary,
                     }
                 }}
             >
@@ -674,12 +710,12 @@ export default function EmployeeListPage() {
                     <Box style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                         {/* Header */}
                         <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                            <Typography variant="h6" style={{ fontWeight: '700', color: '#1a2340' }}>
-                                Employee Details
+                            <Typography variant="h6" style={{ fontWeight: '700', color: theme.palette.text.primary }}>
+                                {t('employees.drawerTitle')}
                             </Typography>
                             <Box style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 {!isDrawerEditMode && (
-                                    <Tooltip title="Edit Info">
+                                    <Tooltip title={t('employees.drawerEditTip')}>
                                         <IconButton onClick={() => setIsDrawerEditMode(true)} size="small" style={{ color: '#F57C00' }}>
                                             <Edit />
                                         </IconButton>
@@ -746,7 +782,7 @@ export default function EmployeeListPage() {
                                         color: '#FFFFFF'
                                     }}>
                                         <CameraAlt style={{ fontSize: 18 }} />
-                                        <span style={{ fontSize: '9px', fontWeight: 700 }}>CHANGE</span>
+                                        <span style={{ fontSize: '9px', fontWeight: 700 }}>{t('employees.drawerChangePic')}</span>
                                     </div>
                                 </div>
                                 {selectedEmployee.profilePic && (
@@ -784,14 +820,14 @@ export default function EmployeeListPage() {
 
                             {!isDrawerEditMode ? (
                                 <>
-                                    <Typography style={{ fontSize: '18px', fontWeight: '700', color: '#1a2340', marginBottom: '4px' }}>
+                                    <Typography style={{ fontSize: '18px', fontWeight: '700', color: theme.palette.text.primary, marginBottom: '4px' }}>
                                         {selectedEmployee.nom}
                                     </Typography>
-                                    <Typography style={{ fontSize: '14px', color: '#7A8A99', marginBottom: '12px' }}>
+                                    <Typography style={{ fontSize: '14px', color: theme.palette.text.secondary, marginBottom: '12px' }}>
                                         {selectedEmployee.email}
                                     </Typography>
                                     <span style={rolebadgeStyle(selectedEmployee.role)}>
-                                        {selectedEmployee.role === 'ROLE_ADMIN' ? 'Admin' : 'Employee'}
+                                        {selectedEmployee.role === 'ROLE_ADMIN' ? t('employees.roleAdmin') : t('employees.roleEmployee')}
                                     </span>
                                 </>
                             ) : (
@@ -799,7 +835,7 @@ export default function EmployeeListPage() {
                                     {drawerError && <div style={messageStyle('error')}>{drawerError}</div>}
                                     
                                     <div style={{ marginBottom: '16px' }}>
-                                        <label style={labelStyle}>Full Name</label>
+                                        <label style={labelStyle}>{t('employees.fieldFullName')}</label>
                                         <input
                                             type="text"
                                             value={drawerForm.nom}
@@ -810,7 +846,7 @@ export default function EmployeeListPage() {
                                     </div>
 
                                     <div style={{ marginBottom: '16px' }}>
-                                        <label style={labelStyle}>Email Address</label>
+                                        <label style={labelStyle}>{t('employees.fieldEmail')}</label>
                                         <input
                                             type="email"
                                             value={drawerForm.email}
@@ -821,25 +857,25 @@ export default function EmployeeListPage() {
                                     </div>
 
                                     <div style={{ marginBottom: '16px' }}>
-                                        <label style={labelStyle}>Password (Optional)</label>
+                                        <label style={labelStyle}>{t('employees.fieldPasswordOptional')}</label>
                                         <input
                                             type="password"
                                             value={drawerForm.password}
                                             onChange={(e) => setDrawerForm({ ...drawerForm, password: e.target.value })}
-                                            placeholder="Leave empty to keep current"
+                                            placeholder={t('employees.placeholderPasswordOptional')}
                                             style={inputStyle}
                                         />
                                     </div>
 
                                     <div style={{ marginBottom: '20px' }}>
-                                        <label style={labelStyle}>Role</label>
+                                        <label style={labelStyle}>{t('employees.fieldRole')}</label>
                                         <select
                                             value={drawerForm.role}
                                             onChange={(e) => setDrawerForm({ ...drawerForm, role: e.target.value })}
                                             style={inputStyle}
                                         >
-                                            <option value="ROLE_EMPLOYE">Employee</option>
-                                            <option value="ROLE_ADMIN">Admin</option>
+                                            <option value="ROLE_EMPLOYE">{t('employees.roleEmployee')}</option>
+                                            <option value="ROLE_ADMIN">{t('employees.roleAdmin')}</option>
                                         </select>
                                     </div>
 
@@ -850,7 +886,7 @@ export default function EmployeeListPage() {
                                             style={{
                                                 flex: 1,
                                                 padding: '10px',
-                                                backgroundColor: '#1976D2',
+                                                backgroundColor: theme.palette.primary.main,
                                                 color: '#FFFFFF',
                                                 border: 'none',
                                                 borderRadius: '8px',
@@ -858,7 +894,7 @@ export default function EmployeeListPage() {
                                                 cursor: drawerLoading ? 'not-allowed' : 'pointer'
                                             }}
                                         >
-                                            {drawerLoading ? 'Saving...' : 'Save'}
+                                            {drawerLoading ? t('employees.btnSaving') : t('employees.btnSave')}
                                         </button>
                                         <button
                                             type="button"
@@ -866,15 +902,15 @@ export default function EmployeeListPage() {
                                             style={{
                                                 flex: 1,
                                                 padding: '10px',
-                                                backgroundColor: '#F5F6FA',
-                                                color: '#1a2340',
-                                                border: '1px solid #D0D5DD',
+                                                backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#F5F6FA',
+                                                color: theme.palette.text.primary,
+                                                border: `1px solid ${theme.palette.divider}`,
                                                 borderRadius: '8px',
                                                 fontWeight: '600',
                                                 cursor: 'pointer'
                                             }}
                                         >
-                                            Cancel
+                                            {t('employees.btnCancel')}
                                         </button>
                                     </Box>
                                 </form>
@@ -884,48 +920,48 @@ export default function EmployeeListPage() {
                         <Divider style={{ marginBottom: '24px' }} />
 
                         {/* Permissions Section */}
-                        <Typography style={{ fontSize: '15px', fontWeight: '700', color: '#1a2340', marginBottom: '16px' }}>
-                            Permissions & Access
+                        <Typography style={{ fontSize: '15px', fontWeight: '700', color: theme.palette.text.primary, marginBottom: '16px' }}>
+                            {t('employees.drawerPermissions')}
                         </Typography>
 
                         {/* Read Permissions */}
                         <Box style={{ marginBottom: '24px' }}>
                             <Typography style={{ fontSize: '12px', fontWeight: '600', color: '#7A8A99', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                                View Access (Read)
+                                {t('employees.drawerReadAccess')}
                             </Typography>
                             <Box style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {selectedEmployee.role === 'ROLE_ADMIN' ? (
                                     <>
                                         <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
                                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4CAF50' }} />
-                                            Team attendance dashboard
+                                            {t('employees.permDashboard')}
                                         </Box>
                                         <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
                                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4CAF50' }} />
-                                            Complete employee directory
+                                            {t('employees.permDirectory')}
                                         </Box>
                                         <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
                                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4CAF50' }} />
-                                            Leave approval requests
+                                            {t('employees.permLeaves')}
                                         </Box>
                                         <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
                                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4CAF50' }} />
-                                            Attendance anomalies & history
+                                            {t('employees.permAnomalies')}
                                         </Box>
                                     </>
                                 ) : (
                                     <>
-                                        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
+                                        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: theme.palette.text.primary }}>
                                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1976D2' }} />
-                                            Personal check-in calendar & history
+                                            {t('employees.permPersonalCalendar')}
                                         </Box>
-                                        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
+                                        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: theme.palette.text.primary }}>
                                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1976D2' }} />
-                                            Leave balance & request history
+                                            {t('employees.permPersonalLeaves')}
                                         </Box>
-                                        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
+                                        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: theme.palette.text.primary }}>
                                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1976D2' }} />
-                                            Notifications & delay alerts
+                                            {t('employees.permNotifications')}
                                         </Box>
                                     </>
                                 )}
@@ -935,41 +971,41 @@ export default function EmployeeListPage() {
                         {/* Write Permissions */}
                         <Box style={{ marginBottom: '24px' }}>
                             <Typography style={{ fontSize: '12px', fontWeight: '600', color: '#7A8A99', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                                Submit / Modify Access (Write)
+                                {t('employees.drawerWriteAccess')}
                             </Typography>
                             <Box style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {selectedEmployee.role === 'ROLE_ADMIN' ? (
                                     <>
                                         <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
                                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4CAF50' }} />
-                                            Manage leave request approvals
+                                            {t('employees.permManageLeaves')}
                                         </Box>
                                         <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
                                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4CAF50' }} />
-                                            Approve/reject late justifications
+                                            {t('employees.permManageJustifications')}
                                         </Box>
                                         <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
                                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4CAF50' }} />
-                                            Generate / display check-in kiosk QR Code
+                                            {t('employees.permKiosk')}
                                         </Box>
                                         <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
                                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4CAF50' }} />
-                                            Add, update, or remove employee accounts
+                                            {t('employees.permManageAccounts')}
                                         </Box>
                                     </>
                                 ) : (
                                     <>
-                                        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
+                                        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: theme.palette.text.primary }}>
                                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1976D2' }} />
-                                            Perform dynamic kiosk check-ins
+                                            {t('employees.permKioskCheckin')}
                                         </Box>
-                                        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
+                                        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: theme.palette.text.primary }}>
                                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1976D2' }} />
-                                            Submit new leave requests
+                                            {t('employees.permSubmitLeaves')}
                                         </Box>
-                                        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#333' }}>
+                                        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: theme.palette.text.primary }}>
                                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1976D2' }} />
-                                            Upload justifications for anomalies
+                                            {t('employees.permSubmitJustifications')}
                                         </Box>
                                     </>
                                 )}
@@ -987,9 +1023,9 @@ export default function EmployeeListPage() {
                                     style={{
                                         width: '100%',
                                         padding: '12px',
-                                        backgroundColor: '#FFF5F5',
-                                        color: '#E53E3E',
-                                        border: '1px solid #FED7D7',
+                                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(229, 62, 62, 0.15)' : '#FFF5F5',
+                                        color: theme.palette.mode === 'dark' ? '#F87171' : '#E53E3E',
+                                        border: theme.palette.mode === 'dark' ? '1px solid rgba(229, 62, 62, 0.3)' : '1px solid #FED7D7',
                                         borderRadius: '8px',
                                         fontWeight: '600',
                                         cursor: 'pointer',
@@ -998,13 +1034,15 @@ export default function EmployeeListPage() {
                                     onMouseEnter={(e) => {
                                         e.currentTarget.style.backgroundColor = '#E53E3E';
                                         e.currentTarget.style.color = '#FFFFFF';
+                                        e.currentTarget.style.borderColor = '#E53E3E';
                                     }}
                                     onMouseLeave={(e) => {
-                                        e.currentTarget.style.backgroundColor = '#FFF5F5';
-                                        e.currentTarget.style.color = '#E53E3E';
+                                        e.currentTarget.style.backgroundColor = theme.palette.mode === 'dark' ? 'rgba(229, 62, 62, 0.15)' : '#FFF5F5';
+                                        e.currentTarget.style.color = theme.palette.mode === 'dark' ? '#F87171' : '#E53E3E';
+                                        e.currentTarget.style.borderColor = theme.palette.mode === 'dark' ? 'rgba(229, 62, 62, 0.3)' : '#FED7D7';
                                     }}
                                 >
-                                    Delete Employee
+                                    {t('employees.btnDelete')}
                                 </button>
                             </Box>
                         )}
@@ -1025,7 +1063,7 @@ export default function EmployeeListPage() {
                     animation: 'fadeIn 0.2s ease-out',
                 }}>
                     <div style={{
-                        backgroundColor: '#FFFFFF',
+                        backgroundColor: theme.palette.background.paper,
                         borderRadius: '12px',
                         padding: '24px',
                         maxWidth: '400px',
@@ -1047,10 +1085,10 @@ export default function EmployeeListPage() {
                         }}>
                             <Warning style={{ fontSize: 24 }} />
                         </div>
-                        <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: '700', color: '#1a2340' }}>
+                        <h3 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: '700', color: theme.palette.text.primary }}>
                             {confirmDialog.title}
                         </h3>
-                        <p style={{ margin: '0 0 24px', fontSize: '14px', color: '#7A8A99', lineHeight: '1.5' }}>
+                        <p style={{ margin: '0 0 24px', fontSize: '14px', color: theme.palette.text.secondary, lineHeight: '1.5' }}>
                             {confirmDialog.message}
                         </p>
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
@@ -1073,25 +1111,25 @@ export default function EmployeeListPage() {
                                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#DC2626'}
                                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#EF4444'}
                             >
-                                Confirm
+                                {t('employees.confirmBtn')}
                             </button>
                             <button
                                 onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
                                 style={{
                                     flex: 1,
                                     padding: '10px 16px',
-                                    backgroundColor: '#F3F4F6',
-                                    color: '#374151',
-                                    border: '1px solid #E5E7EB',
+                                    backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#F3F4F6',
+                                    color: theme.palette.text.primary,
+                                    border: `1px solid ${theme.palette.divider}`,
                                     borderRadius: '8px',
                                     fontWeight: '600',
                                     cursor: 'pointer',
                                     transition: 'background-color 0.2s',
                                 }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E5E7EB'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.palette.mode === 'dark' ? '#334155' : '#E5E7EB'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.palette.mode === 'dark' ? '#1E293B' : '#F3F4F6'}
                             >
-                                Cancel
+                                {t('employees.btnCancel')}
                             </button>
                         </div>
                     </div>
@@ -1104,10 +1142,13 @@ export default function EmployeeListPage() {
                     position: 'fixed',
                     bottom: '24px',
                     right: '24px',
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: theme.palette.background.paper,
                     borderRadius: '12px',
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                    boxShadow: theme.palette.mode === 'dark' ? '0 10px 25px rgba(0,0,0,0.3)' : '0 10px 25px rgba(0,0,0,0.1)',
                     borderLeft: `4px solid ${alertToast.type === 'success' ? '#10B981' : '#EF4444'}`,
+                    borderTop: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none',
+                    borderRight: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none',
+                    borderBottom: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none',
                     padding: '16px 20px',
                     display: 'flex',
                     alignItems: 'center',
@@ -1129,7 +1170,7 @@ export default function EmployeeListPage() {
                             <ErrorOutline style={{ fontSize: 20 }} />
                         )}
                     </div>
-                    <div style={{ flex: 1, fontSize: '13px', fontWeight: '500', color: '#374151' }}>
+                    <div style={{ flex: 1, fontSize: '13px', fontWeight: '500', color: theme.palette.text.primary }}>
                         {alertToast.message}
                     </div>
                     <button

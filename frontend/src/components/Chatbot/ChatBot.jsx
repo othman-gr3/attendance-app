@@ -1,34 +1,39 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
     Box, IconButton, Typography, TextField,
-    CircularProgress, Avatar, Tooltip
+    CircularProgress, Avatar, Tooltip, useTheme
 } from '@mui/material';
 import {
     SmartToy, Close, Send, Person
 } from '@mui/icons-material';
 import { useAuth } from '../../auth/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import api from '../../api/axios';
 import './ChatBot.css';
 
-const PRIMARY = '#0F2942';
-const ACCENT = '#2563EB';
-
 export default function ChatBot() {
     const { user } = useAuth();
+    const { t, language } = useLanguage();
+    const theme = useTheme();
     const [open, setOpen] = useState(false);
-    const [messages, setMessages] = useState([
-        {
-            role: 'assistant',
-            content: `Hi ${user?.email?.split('@')[0] || 'there'}! 👋 I'm your HR assistant. I can help you with:
-- Check your attendance history
-- Submit a leave request
-- Check your leave status
-- View your stats
-${user?.role === 'ROLE_ADMIN' ? '• View absent employees\n• Generate absence reminders\n• View anomaly reports' : ''}
+    const [messages, setMessages] = useState([]);
 
-What can I help you with today?`
-        }
-    ]);
+    useEffect(() => {
+        if (!user) return;
+        const username = user.email?.split('@')[0] || (language === 'fr' ? 'ici' : 'there');
+        const welcomeMsg = t('chatbot.introGreeting', {
+            name: username,
+            adminText: user.role === 'ROLE_ADMIN' ? t('chatbot.introAdminText') : ''
+        });
+        setMessages(prev => {
+            if (prev.length === 0) {
+                return [{ role: 'assistant', content: welcomeMsg }];
+            }
+            const updated = [...prev];
+            updated[0] = { ...updated[0], content: welcomeMsg };
+            return updated;
+        });
+    }, [language, user, t]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef(null);
@@ -51,7 +56,7 @@ IMPORTANT RULES:
 - Format numbers and dates clearly
 - Keep responses short and friendly
 - If no data is available for a question, say "No data found for this period"
-- Always respond in English, regardless of the language the user writes in
+- ${t('chatbot.systemPromptLangRule')}
 - Never make up data`;
     };
 
@@ -83,7 +88,7 @@ IMPORTANT RULES:
         } catch (err) {
             setMessages(prev => [...prev, {
                 role: 'assistant',
-                content: 'Sorry, I encountered an error. Please try again.'
+                content: t('chatbot.errorMsg')
             }]);
         } finally {
             setLoading(false);
@@ -96,7 +101,6 @@ IMPORTANT RULES:
             sendMessage();
         }
     };
-
 
     if (!user) return null;
 
@@ -111,18 +115,18 @@ IMPORTANT RULES:
                     width: 370,
                     height: 520,
                     borderRadius: 3,
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                    boxShadow: theme.palette.mode === 'dark' ? '0 20px 60px rgba(0,0,0,0.45)' : '0 20px 60px rgba(0,0,0,0.2)',
                     display: 'flex',
                     flexDirection: 'column',
                     overflow: 'hidden',
                     zIndex: 1000,
-                    border: '1px solid #DDE1E7',
-                    background: 'white',
+                    border: `1px solid ${theme.palette.divider}`,
+                    background: theme.palette.background.paper,
                 }}>
 
                     {/* Header */}
                     <Box sx={{
-                        background: `linear-gradient(135deg, ${PRIMARY}, #1A4A6B)`,
+                        background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.mode === 'dark' ? '#0F172A' : '#1A4A6B'})`,
                         p: 2,
                         display: 'flex',
                         alignItems: 'center',
@@ -137,10 +141,10 @@ IMPORTANT RULES:
                             </Avatar>
                             <Box>
                                 <Typography variant="body2" fontWeight={700} color="white">
-                                    HR Assistant
+                                    {t('chatbot.title')}
                                 </Typography>
                                 <Typography variant="caption" color="rgba(255,255,255,0.7)">
-                                    Always here to help
+                                    {t('chatbot.subtitle')}
                                 </Typography>
                             </Box>
                         </Box>
@@ -161,7 +165,7 @@ IMPORTANT RULES:
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 1.5,
-                        background: '#F8F9FB'
+                        background: theme.palette.mode === 'dark' ? theme.palette.background.default : '#F8F9FB'
                     }}>
                         {messages.map((msg, index) => (
                             <Box
@@ -176,7 +180,7 @@ IMPORTANT RULES:
                                 {msg.role === 'assistant' && (
                                     <Avatar sx={{
                                         width: 28, height: 28,
-                                        bgcolor: PRIMARY, mb: 0.5
+                                        bgcolor: theme.palette.primary.main, mb: 0.5
                                     }}>
                                         <SmartToy sx={{ fontSize: 16, color: 'white' }} />
                                     </Avatar>
@@ -188,11 +192,11 @@ IMPORTANT RULES:
                                         ? '16px 16px 4px 16px'
                                         : '16px 16px 16px 4px',
                                     background: msg.role === 'user'
-                                        ? `linear-gradient(135deg, ${PRIMARY}, #1A4A6B)`
-                                        : 'white',
-                                    color: msg.role === 'user' ? 'white' : '#0D1B2A',
+                                        ? `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.mode === 'dark' ? '#0F172A' : '#1A4A6B'})`
+                                        : theme.palette.background.paper,
+                                    color: msg.role === 'user' ? 'white' : theme.palette.text.primary,
                                     boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                                    border: msg.role === 'assistant' ? '1px solid #DDE1E7' : 'none',
+                                    border: msg.role === 'assistant' ? `1px solid ${theme.palette.divider}` : 'none',
                                 }}>
                                     <Typography
                                         variant="body2"
@@ -208,7 +212,7 @@ IMPORTANT RULES:
                                 {msg.role === 'user' && (
                                     <Avatar sx={{
                                         width: 28, height: 28,
-                                        bgcolor: ACCENT, mb: 0.5
+                                        bgcolor: theme.palette.primary.main, mb: 0.5
                                     }}>
                                         <Person sx={{ fontSize: 16, color: 'white' }} />
                                     </Avatar>
@@ -218,12 +222,12 @@ IMPORTANT RULES:
 
                         {loading && (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Avatar sx={{ width: 28, height: 28, bgcolor: PRIMARY }}>
+                                <Avatar sx={{ width: 28, height: 28, bgcolor: theme.palette.primary.main }}>
                                     <SmartToy sx={{ fontSize: 16, color: 'white' }} />
                                 </Avatar>
                                 <Box sx={{
                                     p: 1.5, borderRadius: '16px 16px 16px 4px',
-                                    background: 'white', border: '1px solid #DDE1E7',
+                                    background: theme.palette.background.paper, border: `1px solid ${theme.palette.divider}`,
                                     boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
                                 }}>
                                     <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
@@ -240,8 +244,8 @@ IMPORTANT RULES:
                     {/* Input */}
                     <Box sx={{
                         p: 1.5,
-                        borderTop: '1px solid #DDE1E7',
-                        background: 'white',
+                        borderTop: `1px solid ${theme.palette.divider}`,
+                        background: theme.palette.background.paper,
                         display: 'flex',
                         gap: 1,
                         alignItems: 'flex-end'
@@ -251,7 +255,7 @@ IMPORTANT RULES:
                             multiline
                             maxRows={3}
                             size="small"
-                            placeholder="Ask me anything..."
+                            placeholder={t('chatbot.placeholder')}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyPress={handleKeyPress}
@@ -259,6 +263,17 @@ IMPORTANT RULES:
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: 3,
                                     fontSize: 13,
+                                    backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#FFFFFF',
+                                    color: theme.palette.text.primary,
+                                    '& fieldset': {
+                                        borderColor: theme.palette.divider,
+                                    },
+                                    '&:hover fieldset': {
+                                        borderColor: theme.palette.primary.main,
+                                    },
+                                    '&.Mui-focused fieldset': {
+                                        borderColor: theme.palette.primary.main,
+                                    },
                                 }
                             }}
                         />
@@ -266,16 +281,16 @@ IMPORTANT RULES:
                             onClick={sendMessage}
                             disabled={!input.trim() || loading}
                             sx={{
-                                background: `linear-gradient(135deg, ${PRIMARY}, #1A4A6B)`,
+                                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.mode === 'dark' ? '#0F172A' : '#1A4A6B'})`,
                                 color: 'white',
                                 width: 38,
                                 height: 38,
                                 '&:hover': {
-                                    background: `linear-gradient(135deg, #1A4A6B, ${PRIMARY})`,
+                                    background: `linear-gradient(135deg, ${theme.palette.mode === 'dark' ? '#0F172A' : '#1A4A6B'}, ${theme.palette.primary.main})`,
                                 },
                                 '&:disabled': {
-                                    background: '#DDE1E7',
-                                    color: '#9CA3AF'
+                                    background: theme.palette.mode === 'dark' ? '#1E293B' : '#DDE1E7',
+                                    color: theme.palette.mode === 'dark' ? '#475569' : '#9CA3AF'
                                 }
                             }}
                         >
@@ -288,7 +303,7 @@ IMPORTANT RULES:
             )}
 
             {/* Floating Button */}
-            <Tooltip title="HR Assistant" placement="left">
+            <Tooltip title={t('chatbot.title')} placement="left">
                 <IconButton
                     onClick={() => setOpen(!open)}
                     sx={{
@@ -297,12 +312,12 @@ IMPORTANT RULES:
                         right: 24,
                         width: 56,
                         height: 56,
-                        background: `linear-gradient(135deg, ${PRIMARY}, #1A4A6B)`,
+                        background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.mode === 'dark' ? '#0F172A' : '#1A4A6B'})`,
                         color: 'white',
                         zIndex: 1000,
-                        boxShadow: '0 8px 24px rgba(15,41,66,0.4)',
+                        boxShadow: theme.palette.mode === 'dark' ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(38, 115, 221, 0.4)',
                         '&:hover': {
-                            background: `linear-gradient(135deg, #1A4A6B, ${PRIMARY})`,
+                            background: `linear-gradient(135deg, ${theme.palette.mode === 'dark' ? '#0F172A' : '#1A4A6B'}, ${theme.palette.primary.main})`,
                             transform: 'scale(1.05)',
                         },
                         transition: 'all 0.2s ease',

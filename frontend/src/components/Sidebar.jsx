@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import api from '../api/axios';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import EventNoteIcon from '@mui/icons-material/EventNote';
@@ -14,10 +15,14 @@ import PersonIcon from '@mui/icons-material/Person';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import MenuIcon from '@mui/icons-material/Menu';
-import { Drawer, IconButton } from '@mui/material';
+import { Drawer, IconButton, useTheme } from '@mui/material';
+import { useThemeMode } from '../context/ThemeModeContext';
 
 const Sidebar = () => {
     const { user } = useAuth();
+    const { t } = useLanguage();
+    const { themeMode, setThemeMode } = useThemeMode();
+    const theme = useTheme();
     const location = useLocation();
     const navigate = useNavigate();
     const [hoveredLink, setHoveredLink] = useState(null);
@@ -79,7 +84,7 @@ const Sidebar = () => {
 
     // Get role display text
     const getRoleDisplay = () => {
-        return user?.role === 'ROLE_ADMIN' ? 'Admin' : 'Employee';
+        return user?.role === 'ROLE_ADMIN' ? t('sidebar.admin') : t('sidebar.employee');
     };
 
     const sidebarStyle = {
@@ -88,8 +93,8 @@ const Sidebar = () => {
         top: 0,
         width: '240px',
         height: '100vh',
-        backgroundColor: '#FFFFFF',
-        borderRight: '1px solid #E8EAED',
+        backgroundColor: theme.palette.background.paper,
+        borderRight: `1px solid ${theme.palette.divider}`,
         display: 'flex',
         flexDirection: 'column',
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
@@ -98,7 +103,7 @@ const Sidebar = () => {
 
     const profileSectionStyle = {
         padding: '24px 16px',
-        borderBottom: '1px solid #E8EAED',
+        borderBottom: `1px solid ${theme.palette.divider}`,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -109,7 +114,7 @@ const Sidebar = () => {
         width: '60px',
         height: '60px',
         borderRadius: '50%',
-        backgroundColor: '#1976D2',
+        backgroundColor: theme.palette.primary.main,
         color: '#FFFFFF',
         display: 'flex',
         alignItems: 'center',
@@ -121,7 +126,7 @@ const Sidebar = () => {
     const userNameStyle = {
         fontSize: '16px',
         fontWeight: '700',
-        color: '#1a2340',
+        color: theme.palette.text.primary,
         textAlign: 'center',
     };
 
@@ -131,8 +136,8 @@ const Sidebar = () => {
         borderRadius: '12px',
         fontSize: '12px',
         fontWeight: '600',
-        backgroundColor: user?.role === 'ROLE_ADMIN' ? '#1a2340' : '#1976D2',
-        color: '#FFFFFF',
+        backgroundColor: user?.role === 'ROLE_ADMIN' ? (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : '#1a2340') : theme.palette.primary.main,
+        color: theme.palette.mode === 'dark' ? theme.palette.text.primary : '#FFFFFF',
         textAlign: 'center',
     };
 
@@ -154,8 +159,8 @@ const Sidebar = () => {
         transition: 'all 0.2s ease',
         fontSize: '15px',
         fontWeight: '500',
-        backgroundColor: isActive(path) ? '#1976D2' : 'transparent',
-        color: isActive(path) ? '#FFFFFF' : hoveredLink === path ? '#1976D2' : '#555555',
+        backgroundColor: isActive(path) ? theme.palette.primary.main : 'transparent',
+        color: isActive(path) ? '#FFFFFF' : hoveredLink === path ? theme.palette.primary.main : theme.palette.text.secondary,
     });
 
     const navIconStyle = {
@@ -184,21 +189,21 @@ const Sidebar = () => {
     // Define navigation links based on role
     const getNavLinks = () => {
         const adminLinks = [
-            { path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon style={navIconStyle} /> },
-            { path: '/admin/leaves', label: 'Approvals', icon: <AssignmentTurnedInIcon style={navIconStyle} /> },
-            { path: '/admin/anomalies', label: 'Anomaly Report', icon: <WarningAmberIcon style={navIconStyle} /> },
-            { path: '/admin/employees', label: 'Employees', icon: <PeopleIcon style={navIconStyle} /> },
-            { path: '/admin/borne', label: 'QR Kiosk', icon: <QrCodeScannerIcon style={navIconStyle} /> },
-            { path: '/profile', label: 'My Profile', icon: <PersonIcon style={navIconStyle} /> },
+            { path: '/dashboard', label: t('sidebar.dashboard'), icon: <DashboardIcon style={navIconStyle} /> },
+            { path: '/admin/leaves', label: t('sidebar.approvals'), icon: <AssignmentTurnedInIcon style={navIconStyle} /> },
+            { path: '/admin/anomalies', label: t('sidebar.anomalyReport'), icon: <WarningAmberIcon style={navIconStyle} /> },
+            { path: '/admin/employees', label: t('sidebar.employees'), icon: <PeopleIcon style={navIconStyle} /> },
+            { path: '/admin/borne', label: t('sidebar.qrKiosk'), icon: <QrCodeScannerIcon style={navIconStyle} /> },
+            { path: '/profile', label: t('sidebar.myProfile'), icon: <PersonIcon style={navIconStyle} /> },
         ];
 
         const employeeLinks = [
-            { path: '/checkin', label: 'Check In', icon: <QrCodeScannerIcon style={navIconStyle} /> },
-            { path: '/history', label: 'History', icon: <HistoryIcon style={navIconStyle} /> },
-            { path: '/calendar', label: 'Calendar', icon: <CalendarMonthIcon style={navIconStyle} /> },
-            { path: '/leave', label: 'My Leave', icon: <EventNoteIcon style={navIconStyle} /> },
-            { path: '/notifications', label: 'Notifications', icon: <NotificationsIcon style={navIconStyle} /> },
-            { path: '/profile', label: 'My Profile', icon: <PersonIcon style={navIconStyle} /> },
+            { path: '/checkin', label: t('sidebar.checkIn'), icon: <QrCodeScannerIcon style={navIconStyle} /> },
+            { path: '/history', label: t('sidebar.history'), icon: <HistoryIcon style={navIconStyle} /> },
+            { path: '/calendar', label: t('sidebar.calendar'), icon: <CalendarMonthIcon style={navIconStyle} /> },
+            { path: '/leave', label: t('sidebar.myLeave'), icon: <EventNoteIcon style={navIconStyle} /> },
+            { path: '/notifications', label: t('sidebar.notifications'), icon: <NotificationsIcon style={navIconStyle} /> },
+            { path: '/profile', label: t('sidebar.myProfile'), icon: <PersonIcon style={navIconStyle} /> },
         ];
 
         return user?.role === 'ROLE_ADMIN' ? adminLinks : employeeLinks;
@@ -210,20 +215,20 @@ const Sidebar = () => {
         left: 0,
         right: 0,
         height: '56px',
-        backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid #E8EAED',
+        backgroundColor: theme.palette.background.paper,
+        borderBottom: `1px solid ${theme.palette.divider}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 16px',
         zIndex: 1000,
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)',
+        boxShadow: theme.palette.mode === 'dark' ? '0 2px 4px rgba(0,0,0,0.2)' : '0 2px 4px rgba(0, 0, 0, 0.04)',
     };
 
     const mobileTitleStyle = {
         fontSize: '18px',
         fontWeight: '700',
-        color: '#1a2340',
+        color: theme.palette.text.primary,
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
     };
 
@@ -231,7 +236,7 @@ const Sidebar = () => {
         width: '36px',
         height: '36px',
         borderRadius: '50%',
-        backgroundColor: '#1976D2',
+        backgroundColor: theme.palette.primary.main,
         color: '#FFFFFF',
         display: 'flex',
         alignItems: 'center',
@@ -244,7 +249,7 @@ const Sidebar = () => {
 
     const renderSidebarContent = () => {
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#FFFFFF' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: theme.palette.background.paper }}>
                 {/* Profile Section */}
                 <div style={profileSectionStyle}>
                     <div style={{ ...avatarStyle, overflow: 'hidden' }}>
@@ -254,7 +259,7 @@ const Sidebar = () => {
                             getInitials()
                         )}
                     </div>
-                    <div style={userNameStyle}>{user?.nom || 'User'}</div>
+                    <div style={userNameStyle}>{user?.nom || t('sidebar.user')}</div>
                     <div style={roleBadgeStyle}>{getRoleDisplay()}</div>
                 </div>
 
@@ -278,20 +283,83 @@ const Sidebar = () => {
                     ))}
                 </div>
 
+
+                {/* Theme Switcher */}
+                <div style={{
+                    padding: '12px 16px',
+                    borderTop: `1px solid ${theme.palette.divider}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                }}>
+                    <div style={{
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        color: theme.palette.text.secondary,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                    }}>
+                        {t('sidebar.theme')}
+                    </div>
+                    <div style={{
+                        display: 'flex',
+                        background: theme.palette.mode === 'dark' ? '#1E293B' : '#F4F6F8',
+                        borderRadius: '8px',
+                        padding: '4px',
+                    }}>
+                        <button
+                            onClick={() => setThemeMode('light')}
+                            style={{
+                                flex: 1,
+                                border: 'none',
+                                background: themeMode === 'light' ? '#FFFFFF' : 'transparent',
+                                color: themeMode === 'light' ? theme.palette.primary.main : theme.palette.text.secondary,
+                                padding: '6px 0',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                boxShadow: themeMode === 'light' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                            }}
+                        >
+                            {t('sidebar.themeLight')}
+                        </button>
+                        <button
+                            onClick={() => setThemeMode('dark')}
+                            style={{
+                                flex: 1,
+                                border: 'none',
+                                background: themeMode === 'dark' ? '#0F172A' : 'transparent',
+                                color: themeMode === 'dark' ? theme.palette.primary.main : theme.palette.text.secondary,
+                                padding: '6px 0',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                boxShadow: themeMode === 'dark' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none'
+                            }}
+                        >
+                            {t('sidebar.themeDark')}
+                        </button>
+                    </div>
+                </div>
+
                 {/* Logout Button */}
-                <div style={{ padding: '12px', borderTop: '1px solid #E8EAED' }}>
+                <div style={{ padding: '12px', borderTop: `1px solid ${theme.palette.divider}` }}>
                     <button
                         onClick={handleLogout}
                         style={logoutButtonStyle}
                         onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#FFE8E8';
+                            e.target.style.backgroundColor = theme.palette.mode === 'dark' ? '#3B1F1F' : '#FFE8E8';
                         }}
                         onMouseLeave={(e) => {
                             e.target.style.backgroundColor = 'transparent';
                         }}
                     >
                         <LogoutIcon style={navIconStyle} />
-                        <span>Logout</span>
+                        <span>{t('sidebar.logout')}</span>
                     </button>
                 </div>
             </div>
@@ -303,10 +371,10 @@ const Sidebar = () => {
             <>
                 {/* Mobile Header Bar */}
                 <div style={mobileHeaderStyle}>
-                    <IconButton onClick={() => setMobileOpen(true)} style={{ color: '#1a2340' }}>
+                    <IconButton onClick={() => setMobileOpen(true)} style={{ color: theme.palette.text.primary }}>
                         <MenuIcon />
                     </IconButton>
-                    <div style={mobileTitleStyle}>Attendance App</div>
+                    <div style={mobileTitleStyle}>{t('sidebar.appName')}</div>
                     <div style={mobileAvatarContainerStyle} onClick={() => navigate('/profile')}>
                         {avatarUrl ? (
                             <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />

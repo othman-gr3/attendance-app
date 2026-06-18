@@ -6,8 +6,12 @@ import CircularProgress from '@mui/material/CircularProgress';
 import SearchIcon from '@mui/icons-material/Search';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CloseIcon from '@mui/icons-material/Close';
+import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '@mui/material';
 
 const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, employee: propEmployee, onStatsUpdated }) => {
+    const { t, language } = useLanguage();
+    const theme = useTheme();
     const isStandalone = !propUserId;
 
     // Filters for standalone mode
@@ -66,6 +70,18 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
         }
     }, [activeUserId, activeMonth, activeYear]);
 
+    useEffect(() => {
+        if (!activeUserId) return;
+        const interval = setInterval(() => {
+            fetchAnomalies();
+            fetchUserNotifications(activeUserId);
+            if (isStandalone) {
+                fetchUsers();
+            }
+        }, 30000); // 30 seconds auto-refresh
+        return () => clearInterval(interval);
+    }, [activeUserId, activeMonth, activeYear, isStandalone]);
+
     const fetchUsers = async () => {
         try {
             const response = await api.get('/users');
@@ -112,7 +128,7 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
     const handleAutoReminder = async (anomaly, idx) => {
         const emp = activeEmployee;
         if (!emp) {
-            setAlert({ message: "Failed to send reminder: Employee information not found.", type: 'error' });
+            setAlert({ message: t('anomalies.errorNoEmp'), type: 'error' });
             return;
         }
 
@@ -141,13 +157,13 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
             // 3. Post notification to employee (linking anomaly date)
             await api.post('/notifications', {
                 userId: emp.id,
-                title: "Absence Reminder (AI)",
+                title: t('notifications.legendAiReminder'),
                 message: generatedMessage,
                 anomalyDate: anomaly.date // LINKING DATE
             });
 
             setAlert({ 
-                message: `AI reminder notification sent to ${emp.nom} for the absence on ${anomaly.date}!`, 
+                message: t('anomalies.successReminder', { name: emp.nom, date: anomaly.date }), 
                 type: 'success' 
             });
 
@@ -160,7 +176,7 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
         } catch (err) {
             console.error(err);
             setAlert({ 
-                message: err.response?.data?.error || "Error sending AI reminder.", 
+                message: err.response?.data?.error || t('anomalies.errorReminder'), 
                 type: 'error' 
             });
         } finally {
@@ -177,7 +193,7 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
             });
 
             setAlert({ 
-                message: `The anomaly on ${anomaly.date} was successfully justified!`, 
+                message: t('anomalies.successDirectJustified', { date: anomaly.date }), 
                 type: 'success' 
             });
 
@@ -193,7 +209,7 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
         } catch (err) {
             console.error(err);
             setAlert({ 
-                message: err.response?.data?.error || "Error justifying the anomaly.", 
+                message: err.response?.data?.error || t('anomalies.errorDirectJustified'), 
                 type: 'error' 
             });
         }
@@ -204,7 +220,7 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
         setReviewLoading(true);
         try {
             setAlert({
-                message: `Justification successfully ${action === 'approve' ? 'approved' : 'rejected'}.`,
+                message: t('anomalies.successReview', { action: action === 'approve' ? (language === 'fr' ? 'approuvée' : 'approved') : (language === 'fr' ? 'refusée' : 'rejected') }),
                 type: 'success'
             });
             setSelectedNotifForReview(null);
@@ -217,7 +233,7 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
         } catch (err) {
             console.error("Review action error", err);
             setAlert({
-                message: "Error saving your decision.",
+                message: t('anomalies.errorReview'),
                 type: 'error'
             });
             setTimeout(() => setAlert({ message: '', type: '' }), 4000);
@@ -228,10 +244,10 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
 
     const getAnomalyBadge = (type) => {
         const typeMap = {
-            retard: { label: 'Late', color: '#FF9500' },
-            absence: { label: 'Absent', color: '#F44336' },
-            sortie_anticipee: { label: 'Early Exit', color: '#FBC02D' },
-            insuffisance: { label: 'Insufficient Hours', color: '#9C27B0' },
+            retard: { label: t('anomalies.badgeLate'), color: '#FF9500' },
+            absence: { label: t('anomalies.badgeAbsent'), color: '#F44336' },
+            sortie_anticipee: { label: t('anomalies.badgeEarlyExit'), color: '#FBC02D' },
+            insuffisance: { label: t('anomalies.badgeInsufficient'), color: '#9C27B0' },
         };
         const typeInfo = typeMap[type] || { label: type, color: '#757575' };
 
@@ -252,7 +268,7 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
     const pageStyle = isStandalone ? {
         marginLeft: '240px',
         padding: '32px 40px',
-        backgroundColor: '#F5F6FA',
+        backgroundColor: theme.palette.background.default,
         height: '100vh',
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         boxSizing: 'border-box',
@@ -262,45 +278,47 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
     } : {};
 
     const cardStyle = {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.palette.background.paper,
         borderRadius: '12px',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+        boxShadow: theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.25)' : '0 2px 8px rgba(0, 0, 0, 0.08)',
         padding: '24px',
-        border: '1px solid #E8EAED',
+        border: `1px solid ${theme.palette.divider}`,
     };
 
     const titleStyle = {
         fontSize: '18px',
         fontWeight: '700',
-        color: '#1a2340',
+        color: theme.palette.text.primary,
         marginBottom: '4px',
         margin: 0,
     };
 
     const filterBarStyle = {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.palette.background.paper,
         borderRadius: '12px',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+        boxShadow: theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.25)' : '0 2px 8px rgba(0, 0, 0, 0.08)',
         padding: '24px',
         marginBottom: '24px',
         display: 'grid',
         gridTemplateColumns: '2fr 1fr 1fr',
         gap: '16px',
         alignItems: 'flex-end',
-        border: '1px solid #E8EAED',
+        border: `1px solid ${theme.palette.divider}`,
     };
 
     const selectStyle = {
         padding: '10px 12px',
         fontSize: '14px',
-        border: '1px solid #D0D5DD',
+        border: `1px solid ${theme.palette.divider}`,
         borderRadius: '8px',
         fontFamily: 'inherit',
         outline: 'none',
+        backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#FFFFFF',
+        color: theme.palette.text.primary,
     };
 
     const buttonStyle = {
-        backgroundColor: '#1976D2',
+        backgroundColor: theme.palette.primary.main,
         color: '#FFFFFF',
         padding: '10px 24px',
         fontSize: '14px',
@@ -312,38 +330,40 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
     };
 
     const thStyle = {
-        backgroundColor: '#F5F6FA',
+        backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#F5F6FA',
         padding: '12px 16px',
         textAlign: 'left',
         fontSize: '12px',
         fontWeight: '600',
-        color: '#1a2340',
-        borderBottom: '2px solid #E8EAED',
+        color: theme.palette.text.primary,
+        borderBottom: `2px solid ${theme.palette.divider}`,
     };
 
     const tdStyle = {
         padding: '14px 16px',
-        borderBottom: '1px solid #E8EAED',
+        borderBottom: `1px solid ${theme.palette.divider}`,
         fontSize: '13px',
-        color: '#1a2340',
+        color: theme.palette.text.primary,
     };
 
     const modalOverlayStyle = {
         position: 'fixed',
         top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 1000,
     };
 
     const modalContentStyle = {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.palette.background.paper,
         borderRadius: '12px',
         padding: '32px',
         maxWidth: '550px',
         width: '90%',
         maxHeight: '90vh',
         overflowY: 'auto',
+        color: theme.palette.text.primary,
+        border: `1px solid ${theme.palette.divider}`,
     };
 
     const filteredAnomalies = anomalies.filter(a => typeFilter === 'ALL' || a.type === typeFilter);
@@ -369,36 +389,37 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
 
                 <div style={cardStyle}>
                     <div style={{ marginBottom: '16px' }}>
-                        <h3 style={titleStyle}>Detected Anomalies Table</h3>
-                        <p style={{ margin: 0, fontSize: '12px', color: '#7A8A99' }}>List of infractions or irregularities for the selected period</p>
+                        <h3 style={titleStyle}>{t('anomalies.title')}</h3>
+                        <p style={{ margin: 0, fontSize: '12px', color: theme.palette.text.secondary }}>{t('anomalies.subtitle')}</p>
                     </div>
 
                     {loading ? (
-                        <div style={{ padding: '24px 0', textAlign: 'center', color: '#7A8A99' }}>
-                            Loading data...
+                        <div style={{ padding: '24px 0', textAlign: 'center', color: theme.palette.text.secondary }}>
+                            {t('employees.loading')}
                         </div>
                     ) : anomalies.length === 0 ? (
                         <div style={{
-                            backgroundColor: '#E8F5E9',
-                            color: '#2E7D32',
+                            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(46, 125, 50, 0.15)' : '#E8F5E9',
+                            color: theme.palette.mode === 'dark' ? '#81C784' : '#2E7D32',
                             padding: '16px',
                             borderRadius: '8px',
                             fontSize: '13px',
                             fontWeight: '600',
                             textAlign: 'center',
+                            border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(46, 125, 50, 0.3)' : 'transparent'}`,
                         }}>
-                            ✓ No anomalies detected for this period
+                            {t('anomalies.noAnomalies')}
                         </div>
                     ) : (
                         <>
                             {/* Type Filter Pills */}
                             <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
                                 {[
-                                    { value: 'ALL', label: 'All' },
-                                    { value: 'absence', label: 'Absences', color: '#F44336' },
-                                    { value: 'retard', label: 'Late Arrivals', color: '#FF9500' },
-                                    { value: 'sortie_anticipee', label: 'Early Exits', color: '#FBC02D' },
-                                    { value: 'insuffisance', label: 'Insufficient Hours', color: '#9C27B0' }
+                                    { value: 'ALL', label: t('anomalies.pillAll') },
+                                    { value: 'absence', label: t('anomalies.pillAbsences'), color: '#F44336' },
+                                    { value: 'retard', label: t('anomalies.pillLates'), color: '#FF9500' },
+                                    { value: 'sortie_anticipee', label: t('anomalies.pillEarlyExits'), color: '#FBC02D' },
+                                    { value: 'insuffisance', label: t('anomalies.pillInsufficient'), color: '#9C27B0' }
                                 ].map(opt => {
                                     const isActive = typeFilter === opt.value;
                                     return (
@@ -410,9 +431,9 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                 fontSize: '12px',
                                                 fontWeight: '600',
                                                 borderRadius: '16px',
-                                                border: isActive ? `1px solid ${opt.color || '#1976D2'}` : '1px solid #D0D5DD',
-                                                backgroundColor: isActive ? (opt.color || '#1976D2') : '#FFFFFF',
-                                                color: isActive ? '#FFFFFF' : '#4A5568',
+                                                border: isActive ? `1px solid ${opt.color || theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
+                                                backgroundColor: isActive ? (opt.color || theme.palette.primary.main) : theme.palette.background.paper,
+                                                color: isActive ? '#FFFFFF' : theme.palette.text.secondary,
                                                 cursor: 'pointer',
                                                 transition: 'all 0.2s',
                                             }}
@@ -427,22 +448,22 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                 <div style={{
                                     padding: '32px',
                                     textAlign: 'center',
-                                    backgroundColor: '#FAFBFC',
+                                    backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#FAFBFC',
                                     borderRadius: '8px',
-                                    color: '#7A8A99',
+                                    color: theme.palette.text.secondary,
                                     fontSize: '13px',
-                                    border: '1px dashed #E8EAED',
+                                    border: `1px dashed ${theme.palette.divider}`,
                                 }}>
-                                    No anomalies of this type for this period
+                                    {t('anomalies.noFilteredAnomalies')}
                                 </div>
                             ) : (
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <thead>
                                         <tr>
-                                            <th style={thStyle}>Date</th>
-                                            <th style={thStyle}>Type</th>
-                                            <th style={thStyle}>Infraction Details</th>
-                                            <th style={{ ...thStyle, width: '150px', textAlign: 'center' }}>Justification Status / Reminder</th>
+                                            <th style={thStyle}>{t('anomalies.colDate')}</th>
+                                            <th style={thStyle}>{t('anomalies.colType')}</th>
+                                            <th style={thStyle}>{t('anomalies.colDetails')}</th>
+                                            <th style={{ ...thStyle, width: '150px', textAlign: 'center' }}>{t('anomalies.colStatus')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -452,7 +473,7 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                             
                                             return (
                                                 <tr key={idx} style={{ transition: 'background-color 0.2s' }}
-                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8F9FA'}
+                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#F8F9FA'}
                                                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                                 >
                                                     <td style={tdStyle}>{anomaly.date}</td>
@@ -478,7 +499,7 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                                         }}
                                                                         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
                                                                         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                                                        title="Justifier directement"
+                                                                        title={t('anomalies.directApproveTitle')}
                                                                     >
                                                                         <CheckCircle style={{ fontSize: '18px' }} />
                                                                     </button>
@@ -490,7 +511,7 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                                             style={{
                                                                                 background: 'none',
                                                                                 border: 'none',
-                                                                                color: processingIdx === idx ? '#7A8A99' : '#1976D2',
+                                                                                color: processingIdx === idx ? theme.palette.text.secondary : theme.palette.primary.main,
                                                                                 cursor: processingIdx === idx ? 'not-allowed' : 'pointer',
                                                                                 padding: '4px',
                                                                                 display: 'flex',
@@ -504,7 +525,7 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                                             onMouseLeave={(e) => {
                                                                                 e.currentTarget.style.transform = 'scale(1)';
                                                                             }}
-                                                                            title="Send AI Reminder"
+                                                                            title={t('anomalies.btnAiReminder')}
                                                                         >
                                                                             {processingIdx === idx ? (
                                                                                 <CircularProgress size={16} color="inherit" />
@@ -519,8 +540,15 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                             {/* CASE 2: Reminder is PENDING justification */}
                                                             {anomalyNotif && anomalyNotif.justificationStatus === 'PENDING' && (
                                                                 <>
-                                                                    <span style={{ fontSize: 11, color: '#7A8A99', background: '#ECEFF1', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
-                                                                        Reminder Sent (Pending)
+                                                                    <span style={{
+                                                                        fontSize: 11,
+                                                                        color: theme.palette.text.secondary,
+                                                                        background: theme.palette.mode === 'dark' ? '#1E293B' : '#ECEFF1',
+                                                                        padding: '3px 8px',
+                                                                        borderRadius: 4,
+                                                                        fontWeight: 600
+                                                                    }}>
+                                                                        {t('anomalies.statusPending')}
                                                                     </span>
                                                                     <button
                                                                         onClick={() => handleDirectApprove(anomaly)}
@@ -537,7 +565,7 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                                         }}
                                                                         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
                                                                         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                                                        title="Approve directly"
+                                                                        title={t('anomalies.directApproveTitleAlt')}
                                                                     >
                                                                         <CheckCircle style={{ fontSize: '18px' }} />
                                                                     </button>
@@ -549,27 +577,46 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                                      <button
                                                                     onClick={() => setSelectedNotifForReview(anomalyNotif)}
                                                                     style={{
-                                                                        padding: '3px 8px', background: '#FFF3E0', border: '1px solid #FFE082',
-                                                                        borderRadius: 4, color: '#E65100', fontSize: 11, fontWeight: 700,
+                                                                        padding: '3px 8px',
+                                                                        background: theme.palette.mode === 'dark' ? 'rgba(255, 149, 0, 0.15)' : '#FFF3E0',
+                                                                        border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 149, 0, 0.3)' : '#FFE082'}`,
+                                                                        borderRadius: 4,
+                                                                        color: '#FF9500',
+                                                                        fontSize: 11,
+                                                                        fontWeight: 700,
                                                                         cursor: 'pointer'
                                                                     }}
                                                                 >
-                                                                    View justification 🔍
+                                                                    {t('anomalies.btnViewJustif')}
                                                                 </button>
                                                             )}
 
                                                             {/* CASE 4: Justification approved */}
                                                             {anomalyNotif && anomalyNotif.justificationStatus === 'APPROVED' && (
-                                                                <span style={{ fontSize: 11, color: '#2E7D32', background: '#E8F5E9', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
-                                                                    Justified ✅
+                                                                <span style={{
+                                                                    fontSize: 11,
+                                                                    color: theme.palette.mode === 'dark' ? '#81C784' : '#2E7D32',
+                                                                    background: theme.palette.mode === 'dark' ? 'rgba(46, 125, 50, 0.15)' : '#E8F5E9',
+                                                                    padding: '3px 8px',
+                                                                    borderRadius: 4,
+                                                                    fontWeight: 600
+                                                                }}>
+                                                                    {t('anomalies.statusJustified')}
                                                                 </span>
                                                             )}
 
                                                             {/* CASE 5: Justification rejected */}
                                                             {anomalyNotif && anomalyNotif.justificationStatus === 'REJECTED' && (
                                                                 <>
-                                                                    <span style={{ fontSize: 11, color: '#C62828', background: '#FFEBEE', padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
-                                                                        Rejected ❌
+                                                                    <span style={{
+                                                                        fontSize: 11,
+                                                                        color: theme.palette.mode === 'dark' ? '#F87171' : '#C62828',
+                                                                        background: theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.15)' : '#FFEBEE',
+                                                                        padding: '3px 8px',
+                                                                        borderRadius: 4,
+                                                                        fontWeight: 600
+                                                                    }}>
+                                                                        {t('anomalies.statusRejected')}
                                                                     </span>
                                                                     <button
                                                                         onClick={() => handleDirectApprove(anomaly)}
@@ -586,7 +633,7 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                                         }}
                                                                         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
                                                                         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                                                        title="Approve directly"
+                                                                        title={t('anomalies.directApproveTitleAlt')}
                                                                     >
                                                                         <CheckCircle style={{ fontSize: '18px' }} />
                                                                     </button>
@@ -609,35 +656,35 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                     <div style={modalOverlayStyle} onClick={() => setSelectedNotifForReview(null)}>
                         <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1a2340', margin: 0 }}>
-                                    Review Justification
+                                <h2 style={{ fontSize: 18, fontWeight: 700, color: theme.palette.text.primary, margin: 0 }}>
+                                    {t('anomalies.modalTitle')}
                                 </h2>
                                 <button
                                     onClick={() => setSelectedNotifForReview(null)}
-                                    style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#666' }}
+                                    style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: theme.palette.text.secondary }}
                                 >
                                     ×
                                 </button>
                             </div>
 
-                            <div style={{ marginBottom: 16, padding: 12, background: '#F8F9FA', borderRadius: 8, border: '1px solid #E8EAED', fontSize: 13 }}>
-                                <p style={{ margin: '0 0 4px', color: '#7A8A99' }}><strong>Absence Date:</strong> {selectedNotifForReview.anomalyDate}</p>
-                                <p style={{ margin: '0 0 4px', color: '#7A8A99' }}><strong>Employee:</strong> {activeEmployee?.nom}</p>
-                                <p style={{ margin: 0, color: '#7A8A99' }}><strong>Email:</strong> {activeEmployee?.email}</p>
+                            <div style={{ marginBottom: 16, padding: 12, background: theme.palette.mode === 'dark' ? '#1E293B' : '#F8F9FA', borderRadius: 8, border: `1px solid ${theme.palette.divider}`, fontSize: 13 }}>
+                                <p style={{ margin: '0 0 4px', color: theme.palette.text.secondary }}><strong>{t('anomalies.modalDate')}</strong> {selectedNotifForReview.anomalyDate}</p>
+                                <p style={{ margin: '0 0 4px', color: theme.palette.text.secondary }}><strong>{t('anomalies.modalEmployee')}</strong> {activeEmployee?.nom}</p>
+                                <p style={{ margin: 0, color: theme.palette.text.secondary }}><strong>{t('anomalies.modalEmail')}</strong> {activeEmployee?.email}</p>
                             </div>
 
                             <div style={{ marginBottom: 16 }}>
-                                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#1a2340', marginBottom: 6 }}>Explanation Message:</label>
-                                <div style={{ padding: 12, background: '#FAFBFC', border: '1px solid #DDE1E7', borderRadius: 8, fontSize: 13, color: '#0D1B2A', lineHeight: 1.6 }}>
+                                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: theme.palette.text.primary, marginBottom: 6 }}>{t('anomalies.modalExplain')}</label>
+                                <div style={{ padding: 12, background: theme.palette.mode === 'dark' ? '#0F172A' : '#FAFBFC', border: `1px solid ${theme.palette.divider}`, borderRadius: 8, fontSize: 13, color: theme.palette.text.primary, lineHeight: 1.6 }}>
                                     {selectedNotifForReview.responseMessage}
                                 </div>
                             </div>
 
                             {selectedNotifForReview.responseAttachment && (
                                 <div style={{ marginBottom: 24 }}>
-                                    <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#1a2340', marginBottom: 6 }}>Attached Medical Certificate:</label>
+                                    <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: theme.palette.text.primary, marginBottom: 6 }}>{t('anomalies.modalAttached')}</label>
                                     {selectedNotifForReview.responseAttachmentType?.startsWith('image/') ? (
-                                        <div style={{ border: '1px solid #DDE1E7', borderRadius: 8, overflow: 'hidden', textAlign: 'center', background: '#FAFBFC', padding: 8 }}>
+                                        <div style={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 8, overflow: 'hidden', textAlign: 'center', background: theme.palette.mode === 'dark' ? '#0F172A' : '#FAFBFC', padding: 8 }}>
                                             <img
                                                 src={selectedNotifForReview.responseAttachment}
                                                 alt="Medical Certificate"
@@ -645,17 +692,17 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                             />
                                         </div>
                                     ) : (
-                                        <div style={{ padding: 12, background: '#FAFBFC', border: '1px solid #DDE1E7', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ fontSize: 12, color: '#1a2340' }}>📎 {selectedNotifForReview.responseAttachmentName || "justification"}</span>
+                                        <div style={{ padding: 12, background: theme.palette.mode === 'dark' ? '#0F172A' : '#FAFBFC', border: `1px solid ${theme.palette.divider}`, borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontSize: 12, color: theme.palette.text.primary }}>📎 {selectedNotifForReview.responseAttachmentName || "justification"}</span>
                                             <a
                                                 href={selectedNotifForReview.responseAttachment}
                                                 download={selectedNotifForReview.responseAttachmentName || "justification"}
                                                 style={{
-                                                    fontSize: 12, fontWeight: 600, color: '#1976D2', textDecoration: 'none',
-                                                    background: '#E3F2FD', padding: '5px 12px', borderRadius: 4
+                                                    fontSize: 12, fontWeight: 600, color: theme.palette.mode === 'dark' ? '#60A5FA' : '#1976D2', textDecoration: 'none',
+                                                    background: theme.palette.mode === 'dark' ? 'rgba(38, 115, 221, 0.2)' : '#E3F2FD', padding: '5px 12px', borderRadius: 4
                                                 }}
                                             >
-                                                Download
+                                                {t('anomalies.btnDownload')}
                                             </a>
                                         </div>
                                     )}
@@ -670,7 +717,7 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                         borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer'
                                     }}
                                 >
-                                    Approve
+                                    {t('anomalies.btnApprove')}
                                 </button>
 
                                 <button
@@ -681,17 +728,20 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                         borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer'
                                     }}
                                 >
-                                    Reject
+                                    {t('anomalies.btnReject')}
                                 </button>
 
                                 <button
                                     onClick={() => setSelectedNotifForReview(null)}
                                     style={{
-                                        padding: '10px', background: '#FAFBFC', color: '#555', border: '1px solid #DDE1E7',
+                                        padding: '10px',
+                                        background: theme.palette.mode === 'dark' ? '#1E293B' : '#FAFBFC',
+                                        color: theme.palette.text.secondary,
+                                        border: `1px solid ${theme.palette.divider}`,
                                         borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer'
                                     }}
                                 >
-                                    Close
+                                    {t('anomalies.btnClose')}
                                 </button>
                             </div>
                         </div>
@@ -709,16 +759,16 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                     {/* Header block with Title, Role Pills, Search Bar and Back Button */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
                         <div>
-                            <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#1a2340', margin: '0 0 8px 0' }}>Anomaly Report</h1>
-                            <p style={{ fontSize: '14px', color: '#7A8A99', margin: '0' }}>Detect anomalies and manage justifications at a glance</p>
+                            <h1 style={{ fontSize: '28px', fontWeight: '700', color: theme.palette.text.primary, margin: '0 0 8px 0' }}>{t('anomalies.title')}</h1>
+                            <p style={{ fontSize: '14px', color: theme.palette.text.secondary, margin: '0' }}>{t('anomalies.subtitle')}</p>
                         </div>
                         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                             {/* Role Filter Pills */}
-                            <div style={{ display: 'flex', border: '1px solid #D0D5DD', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#FFFFFF' }}>
+                            <div style={{ display: 'flex', border: `1px solid ${theme.palette.divider}`, borderRadius: '8px', overflow: 'hidden', backgroundColor: theme.palette.background.paper }}>
                                 {[
-                                    { value: 'ALL', label: 'All' },
-                                    { value: 'ROLE_EMPLOYE', label: 'Employees' },
-                                    { value: 'ROLE_ADMIN', label: 'Admins' }
+                                    { value: 'ALL', label: t('dashboard.pillAll') },
+                                    { value: 'ROLE_EMPLOYE', label: t('dashboard.pillEmployees') },
+                                    { value: 'ROLE_ADMIN', label: t('dashboard.pillAdmins') }
                                 ].map(opt => {
                                     const isActive = roleFilter === opt.value;
                                     return (
@@ -730,8 +780,8 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                 fontSize: '13px',
                                                 fontWeight: '600',
                                                 border: 'none',
-                                                backgroundColor: isActive ? '#1976D2' : 'transparent',
-                                                color: isActive ? '#FFFFFF' : '#4A5568',
+                                                backgroundColor: isActive ? theme.palette.primary.main : 'transparent',
+                                                color: isActive ? '#FFFFFF' : theme.palette.text.secondary,
                                                 cursor: 'pointer',
                                                 transition: 'all 0.2s',
                                             }}
@@ -744,31 +794,33 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
 
                             {/* Search Bar */}
                             <div style={{ position: 'relative', width: '260px' }}>
-                                <SearchIcon style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#7A8A99', fontSize: '18px' }} />
+                                <SearchIcon style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: theme.palette.text.secondary, fontSize: '18px' }} />
                                 <input
                                     type="text"
-                                    placeholder="Search by name..."
+                                    placeholder={t('dashboard.searchPlaceholder')}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     style={{
                                         width: '100%',
                                         padding: '8px 12px 8px 34px',
                                         fontSize: '13px',
-                                        border: '1px solid #D0D5DD',
+                                        border: `1px solid ${theme.palette.divider}`,
                                         borderRadius: '8px',
                                         outline: 'none',
                                         fontFamily: 'inherit',
                                         boxSizing: 'border-box',
+                                        backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#FFFFFF',
+                                        color: theme.palette.text.primary,
                                     }}
-                                    onFocus={(e) => e.target.style.borderColor = '#1976D2'}
-                                    onBlur={(e) => e.target.style.borderColor = '#D0D5DD'}
+                                    onFocus={(e) => e.target.style.borderColor = theme.palette.primary.main}
+                                    onBlur={(e) => e.target.style.borderColor = theme.palette.divider}
                                 />
                                 {searchTerm && (
                                     <button
                                         onClick={() => setSearchTerm('')}
                                         style={{
                                             position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
-                                            background: 'none', border: 'none', color: '#7A8A99', cursor: 'pointer', display: 'flex', alignItems: 'center'
+                                            background: 'none', border: 'none', color: theme.palette.text.secondary, cursor: 'pointer', display: 'flex', alignItems: 'center'
                                         }}
                                     >
                                         <CloseIcon style={{ fontSize: '16px' }} />
@@ -780,12 +832,12 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                 <button
                                     onClick={() => setSelectedUserId('')}
                                     style={{
-                                        backgroundColor: '#FFFFFF',
-                                        color: '#1976D2',
+                                        backgroundColor: theme.palette.background.paper,
+                                        color: theme.palette.primary.main,
                                         padding: '8px 16px',
                                         fontSize: '13px',
                                         fontWeight: '600',
-                                        border: '1px solid #1976D2',
+                                        border: `1px solid ${theme.palette.primary.main}`,
                                         borderRadius: '8px',
                                         cursor: 'pointer',
                                         transition: 'all 0.2s ease',
@@ -794,13 +846,13 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                         gap: '6px',
                                     }}
                                     onMouseEnter={(e) => {
-                                        e.currentTarget.style.backgroundColor = '#E3F2FD';
+                                        e.currentTarget.style.backgroundColor = theme.palette.mode === 'dark' ? 'rgba(38, 115, 221, 0.15)' : '#E3F2FD';
                                     }}
                                     onMouseLeave={(e) => {
-                                        e.currentTarget.style.backgroundColor = '#FFFFFF';
+                                        e.currentTarget.style.backgroundColor = theme.palette.background.paper;
                                     }}
                                 >
-                                    <ArrowBackIcon style={{ fontSize: '16px' }} /> All Employees
+                                    <ArrowBackIcon style={{ fontSize: '16px' }} /> {t('anomalies.btnAllEmployees')}
                                 </button>
                             )}
                         </div>
@@ -808,23 +860,23 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
 
                     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto', paddingRight: '4px' }}>
                         {!selectedUserId ? (
-                        /* Full Page Grid of Big Employee Cards */
-                        <div>
-                            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#1a2340', marginBottom: '24px' }}>
-                                Select an employee to view their anomalies
-                            </h2>
-                            {filteredUsers.length === 0 ? (
+                            <>
+                                {/* Full Page Grid of Big Employee Cards */}
+                                <h2 style={{ fontSize: '18px', fontWeight: '600', color: theme.palette.text.primary, marginBottom: '24px' }}>
+                                    {t('anomalies.selectHeader')}
+                                </h2>
+                                {filteredUsers.length === 0 ? (
                                 <div style={{
                                     padding: '40px',
                                     textAlign: 'center',
-                                    backgroundColor: '#FFFFFF',
+                                    backgroundColor: theme.palette.background.paper,
                                     borderRadius: '12px',
-                                    border: '1px solid #E8EAED',
-                                    color: '#7A8A99',
+                                    border: `1px solid ${theme.palette.divider}`,
+                                    color: theme.palette.text.secondary,
                                     fontSize: '14px',
                                     marginBottom: '24px',
                                 }}>
-                                    No employee found for "{searchTerm}"
+                                    {t('anomalies.noEmployees', { searchTerm })}
                                 </div>
                             ) : (
                                 <div style={{
@@ -840,9 +892,9 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                 key={u.id}
                                                 onClick={() => setSelectedUserId(u.id)}
                                                 style={{
-                                                    backgroundColor: '#FFFFFF',
+                                                    backgroundColor: theme.palette.background.paper,
                                                     borderRadius: '16px',
-                                                    border: '1px solid #E8EAED',
+                                                    border: `1px solid ${theme.palette.divider}`,
                                                     padding: '32px 24px',
                                                     display: 'flex',
                                                     flexDirection: 'column',
@@ -850,25 +902,27 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                     textAlign: 'center',
                                                     cursor: 'pointer',
                                                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
+                                                    boxShadow: theme.palette.mode === 'dark' ? '0 4px 12px rgba(0, 0, 0, 0.25)' : '0 4px 12px rgba(0, 0, 0, 0.03)',
                                                 }}
                                                 onMouseEnter={(e) => {
                                                     e.currentTarget.style.transform = 'translateY(-4px)';
-                                                    e.currentTarget.style.borderColor = '#1976D2';
-                                                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(25, 118, 210, 0.12)';
+                                                    e.currentTarget.style.borderColor = theme.palette.primary.main;
+                                                    e.currentTarget.style.boxShadow = theme.palette.mode === 'dark'
+                                                        ? '0 8px 24px rgba(38, 115, 221, 0.3)'
+                                                        : '0 8px 24px rgba(38, 115, 221, 0.12)';
                                                 }}
                                                 onMouseLeave={(e) => {
                                                     e.currentTarget.style.transform = 'translateY(0)';
-                                                    e.currentTarget.style.borderColor = '#E8EAED';
-                                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.03)';
+                                                    e.currentTarget.style.borderColor = theme.palette.divider;
+                                                    e.currentTarget.style.boxShadow = theme.palette.mode === 'dark' ? '0 4px 12px rgba(0, 0, 0, 0.25)' : '0 4px 12px rgba(0, 0, 0, 0.03)';
                                                 }}
                                             >
                                                 <div style={{
                                                     width: '80px',
                                                     height: '80px',
                                                     borderRadius: '50%',
-                                                    backgroundColor: '#E0E0E0',
-                                                    color: '#666666',
+                                                    backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#E0E0E0',
+                                                    color: theme.palette.text.secondary,
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
@@ -884,10 +938,10 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                         getInitials(u.nom)
                                                     )}
                                                 </div>
-                                                <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1a2340', margin: '0 0 6px 0' }}>
+                                                <h3 style={{ fontSize: '18px', fontWeight: '700', color: theme.palette.text.primary, margin: '0 0 6px 0' }}>
                                                     {u.nom}
                                                 </h3>
-                                                <p style={{ fontSize: '13px', color: '#7A8A99', margin: '0 0 16px 0' }}>
+                                                <p style={{ fontSize: '13px', color: theme.palette.text.secondary, margin: '0 0 16px 0' }}>
                                                     {u.email}
                                                 </p>
                                                 <span style={{
@@ -895,18 +949,22 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                     fontWeight: '700',
                                                     padding: '4px 12px',
                                                     borderRadius: '12px',
-                                                    backgroundColor: u.role === 'ROLE_ADMIN' ? '#FFE2E2' : '#E0F2FE',
-                                                    color: u.role === 'ROLE_ADMIN' ? '#C62828' : '#0369A1'
+                                                    backgroundColor: u.role === 'ROLE_ADMIN' 
+                                                        ? (theme.palette.mode === 'dark' ? 'rgba(239, 68, 68, 0.2)' : '#FFE2E2') 
+                                                        : (theme.palette.mode === 'dark' ? 'rgba(38, 115, 221, 0.2)' : '#E0F2FE'),
+                                                    color: u.role === 'ROLE_ADMIN' 
+                                                        ? (theme.palette.mode === 'dark' ? '#F87171' : '#C62828') 
+                                                        : (theme.palette.mode === 'dark' ? '#60A5FA' : '#0369A1')
                                                 }}>
-                                                    {u.role === 'ROLE_ADMIN' ? 'Admin' : 'Employee'}
+                                                    {u.role === 'ROLE_ADMIN' ? t('employees.roleAdmin') : t('employees.roleEmployee')}
                                                 </span>
                                             </div>
                                         );
                                     })}
                                 </div>
                             )}
-                        </div>
-                    ) : (
+                            </>
+                        ) : (
                         /* Selected Mode: compact horizontal cards scrollbar + month/year filter + details */
                         <div>
                             {/* Horizontal scrollbar of user cards */}
@@ -928,9 +986,13 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                 onClick={() => setSelectedUserId(u.id)}
                                                 style={{
                                                     flex: '0 0 auto',
-                                                    backgroundColor: isSelected ? '#E3F2FD' : '#FFFFFF',
+                                                    backgroundColor: isSelected 
+                                                        ? (theme.palette.mode === 'dark' ? 'rgba(38, 115, 221, 0.2)' : '#E3F2FD') 
+                                                        : theme.palette.background.paper,
                                                     borderRadius: '10px',
-                                                    border: isSelected ? '2px solid #1976D2' : '1px solid #E8EAED',
+                                                    border: isSelected 
+                                                        ? `2px solid ${theme.palette.primary.main}` 
+                                                        : `1px solid ${theme.palette.divider}`,
                                                     padding: '10px 16px',
                                                     display: 'flex',
                                                     alignItems: 'center',
@@ -939,18 +1001,18 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                     transition: 'all 0.2s ease',
                                                     width: '240px',
                                                     boxSizing: 'border-box',
-                                                    boxShadow: isSelected ? '0 4px 10px rgba(25, 118, 210, 0.1)' : '0 2px 4px rgba(0, 0, 0, 0.02)',
+                                                    boxShadow: isSelected ? '0 4px 10px rgba(38, 115, 221, 0.1)' : '0 2px 4px rgba(0, 0, 0, 0.02)',
                                                 }}
                                                 onMouseEnter={(e) => {
                                                     if (!isSelected) {
-                                                        e.currentTarget.style.borderColor = '#1976D2';
-                                                        e.currentTarget.style.backgroundColor = '#F5F9FC';
+                                                        e.currentTarget.style.borderColor = theme.palette.primary.main;
+                                                        e.currentTarget.style.backgroundColor = theme.palette.mode === 'dark' ? 'rgba(38, 115, 221, 0.08)' : '#F5F9FC';
                                                     }
                                                 }}
                                                 onMouseLeave={(e) => {
                                                     if (!isSelected) {
-                                                        e.currentTarget.style.borderColor = '#E8EAED';
-                                                        e.currentTarget.style.backgroundColor = '#FFFFFF';
+                                                        e.currentTarget.style.borderColor = theme.palette.divider;
+                                                        e.currentTarget.style.backgroundColor = theme.palette.background.paper;
                                                     }
                                                 }}
                                             >
@@ -958,8 +1020,10 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                     width: '36px',
                                                     height: '36px',
                                                     borderRadius: '50%',
-                                                    backgroundColor: isSelected ? '#1976D2' : '#E0E0E0',
-                                                    color: isSelected ? '#FFFFFF' : '#666666',
+                                                    backgroundColor: isSelected 
+                                                        ? theme.palette.primary.main 
+                                                        : (theme.palette.mode === 'dark' ? '#1E293B' : '#E0E0E0'),
+                                                    color: isSelected ? '#FFFFFF' : theme.palette.text.secondary,
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
@@ -978,7 +1042,7 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                     <div style={{
                                                         fontWeight: '600',
                                                         fontSize: '13px',
-                                                        color: '#1a2340',
+                                                        color: theme.palette.text.primary,
                                                         textOverflow: 'ellipsis',
                                                         overflow: 'hidden',
                                                         whiteSpace: 'nowrap'
@@ -987,12 +1051,12 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                                     </div>
                                                     <div style={{
                                                         fontSize: '10px',
-                                                        color: '#7A8A99',
+                                                        color: theme.palette.text.secondary,
                                                         textOverflow: 'ellipsis',
                                                         overflow: 'hidden',
                                                         whiteSpace: 'nowrap'
                                                     }}>
-                                                        {u.role === 'ROLE_ADMIN' ? 'Admin' : 'Employee'}
+                                                        {u.role === 'ROLE_ADMIN' ? t('employees.roleAdmin') : t('employees.roleEmployee')}
                                                     </div>
                                                 </div>
                                             </div>
@@ -1003,19 +1067,19 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
 
                             {/* Month / Year Filter bar */}
                             <div style={{
-                                backgroundColor: '#FFFFFF',
+                                backgroundColor: theme.palette.background.paper,
                                 borderRadius: '12px',
-                                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                                boxShadow: theme.palette.mode === 'dark' ? '0 4px 20px rgba(0,0,0,0.25)' : '0 2px 8px rgba(0, 0, 0, 0.08)',
                                 padding: '24px',
                                 marginBottom: '24px',
                                 display: 'grid',
                                 gridTemplateColumns: '1fr 1fr 1.2fr',
                                 gap: '16px',
                                 alignItems: 'flex-end',
-                                border: '1px solid #E8EAED',
+                                border: `1px solid ${theme.palette.divider}`,
                             }}>
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#1a2340', marginBottom: '8px' }}>Month</label>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: theme.palette.text.primary, marginBottom: '8px' }}>{t('anomalies.fieldMonth')}</label>
                                     <select
                                         value={month}
                                         onChange={(e) => setMonth(parseInt(e.target.value))}
@@ -1023,14 +1087,14 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                     >
                                         {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                                             <option key={m} value={m}>
-                                                {new Date(2024, m - 1).toLocaleString('en-US', { month: 'long' })}
+                                                {new Date(2024, m - 1).toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' })}
                                             </option>
                                         ))}
                                     </select>
                                 </div>
 
                                 <div>
-                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#1a2340', marginBottom: '8px' }}>Year</label>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: theme.palette.text.primary, marginBottom: '8px' }}>{t('anomalies.fieldYear')}</label>
                                     <select
                                         value={year}
                                         onChange={(e) => setYear(parseInt(e.target.value))}
@@ -1047,13 +1111,13 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                                     style={buttonStyle}
                                     disabled={loading}
                                     onMouseEnter={(e) => {
-                                        if (!loading) e.currentTarget.style.backgroundColor = '#1565C0';
+                                        if (!loading) e.currentTarget.style.backgroundColor = theme.palette.primary.main;
                                     }}
                                     onMouseLeave={(e) => {
-                                        e.currentTarget.style.backgroundColor = '#1976D2';
+                                        e.currentTarget.style.backgroundColor = theme.palette.primary.main;
                                     }}
-                                >
-                                    {loading ? 'Loading...' : 'Refresh'}
+                                >     >
+                                    {loading ? t('dashboard.btnLoading') : t('anomalies.btnRefresh')}
                                 </button>
                             </div>
 

@@ -4,22 +4,35 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
-
-const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const DAYS_EN = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '@mui/material';
 
 function getDaysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
 function getFirstDayOfMonth(y, m) { const d = new Date(y, m, 1).getDay(); return d === 0 ? 6 : d - 1; }
 
-const DAY_STYLES = {
-  present: { bg: '#E8F5E9', color: '#2E7D32', border: '#A5D6A7', label: 'Present' },
-  absent:  { bg: '#FFEBEE', color: '#C62828', border: '#FFCDD2', label: 'Absent' },
-  invalid: { bg: '#FFF8E1', color: '#E65100', border: '#FFE082', label: 'Invalid' },
-  weekend: { bg: '#F5F6FA', color: '#B0BEC5', border: '#E8EAED', label: 'Weekend' },
-  future:  { bg: '#FAFBFC', color: '#CFD8DC', border: '#ECEFF1', label: 'Upcoming' },
-};
-
 export default function CalendarPage() {
+  const { language, t } = useLanguage();
+  const theme = useTheme();
+  const months = t('calendar.months').split(',');
+  const days = t('calendar.days').split(',');
+
+  const DAY_STYLES = {
+    present: theme.palette.mode === 'dark' 
+      ? { bg: '#064E3B', color: '#34D399', border: '#047857', label: t('calendar.present') }
+      : { bg: '#E8F5E9', color: '#2E7D32', border: '#A5D6A7', label: t('calendar.present') },
+    absent: theme.palette.mode === 'dark' 
+      ? { bg: '#7F1D1D', color: '#F87171', border: '#B91C1C', label: t('calendar.absent') }
+      : { bg: '#FFEBEE', color: '#C62828', border: '#FFCDD2', label: t('calendar.absent') },
+    invalid: theme.palette.mode === 'dark' 
+      ? { bg: '#451A03', color: '#FBBF24', border: '#78350F', label: t('calendar.invalid') }
+      : { bg: '#FFF8E1', color: '#E65100', border: '#FFE082', label: t('calendar.invalid') },
+    weekend: theme.palette.mode === 'dark' 
+      ? { bg: '#1E293B', color: '#475569', border: '#334155', label: t('calendar.weekend') }
+      : { bg: '#F5F6FA', color: '#B0BEC5', border: '#E8EAED', label: t('calendar.weekend') },
+    future: theme.palette.mode === 'dark' 
+      ? { bg: '#0B0F19', color: '#1E293B', border: '#1E293B', label: t('calendar.future') }
+      : { bg: '#FAFBFC', color: '#CFD8DC', border: '#ECEFF1', label: t('calendar.future') },
+  };
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -82,19 +95,25 @@ export default function CalendarPage() {
   const selectedPts = selectedKey ? (pointagesMap[selectedKey] || []) : [];
   const selectedStatus = selectedKey ? getDayStatus(selectedKey) : null;
 
-  const cardStyle = { background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', padding: 18 };
+  const cardStyle = {
+    background: theme.palette.background.paper,
+    borderRadius: 12,
+    boxShadow: theme.palette.mode === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.07)',
+    border: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none',
+    padding: 18
+  };
 
   return (
     <div className="page-container" style={{
       marginLeft: 240, height: '100vh', overflow: 'hidden',
-      backgroundColor: '#F5F6FA', fontFamily: 'Inter, system-ui, sans-serif',
+      backgroundColor: theme.palette.background.default, fontFamily: 'Inter, system-ui, sans-serif',
       display: 'flex', flexDirection: 'column',
       padding: '28px 32px', boxSizing: 'border-box', gap: 14,
     }}>
       {/* Header */}
       <div style={{ flexShrink: 0 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1a2340', margin: '0 0 4px' }}>Attendance Calendar</h1>
-        <p style={{ fontSize: 13, color: '#7A8A99', margin: 0 }}>Monthly view of your check-ins and absences</p>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: theme.palette.text.primary, margin: '0 0 4px' }}>{t('calendar.title')}</h1>
+        <p style={{ fontSize: 13, color: theme.palette.text.secondary, margin: 0 }}>{t('calendar.subtitle')}</p>
       </div>
 
       {/* Two-column */}
@@ -106,31 +125,31 @@ export default function CalendarPage() {
 
             {/* Month nav */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexShrink: 0 }}>
-              <button onClick={prevMonth} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E8EAED', background: '#F5F6FA', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = '#1976D2'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = '#E8EAED'}>
+              <button onClick={prevMonth} style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${theme.palette.divider}`, background: theme.palette.mode === 'dark' ? '#1E293B' : '#F5F6FA', color: theme.palette.text.primary, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = theme.palette.primary.main}
+                onMouseLeave={e => e.currentTarget.style.borderColor = theme.palette.divider}>
                 <ChevronLeftIcon style={{ fontSize: 18 }} />
               </button>
-              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1a2340' }}>{MONTHS_EN[month]} {year}</h2>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: theme.palette.text.primary }}>{months[month]} {year}</h2>
               <button onClick={nextMonth} disabled={isNextDisabled}
-                style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #E8EAED', background: '#F5F6FA', cursor: isNextDisabled ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isNextDisabled ? 0.4 : 1 }}
-                onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.borderColor = '#1976D2'; }}
-                onMouseLeave={e => e.currentTarget.style.borderColor = '#E8EAED'}>
+                style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${theme.palette.divider}`, background: theme.palette.mode === 'dark' ? '#1E293B' : '#F5F6FA', color: theme.palette.text.primary, cursor: isNextDisabled ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isNextDisabled ? 0.4 : 1 }}
+                onMouseEnter={e => { if (!e.currentTarget.disabled) e.currentTarget.style.borderColor = theme.palette.primary.main; }}
+                onMouseLeave={e => e.currentTarget.style.borderColor = theme.palette.divider}>
                 <ChevronRightIcon style={{ fontSize: 18 }} />
               </button>
             </div>
 
             {/* Day headers */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3, marginBottom: 5, flexShrink: 0 }}>
-              {DAYS_EN.map(d => (
-                <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: d === 'Sat' || d === 'Sun' ? '#B0BEC5' : '#7A8A99', padding: '2px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{d}</div>
+              {days.map(d => (
+                <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: d === 'Sat' || d === 'Sun' || d === 'sam.' || d === 'dim.' ? '#B0BEC5' : theme.palette.text.secondary, padding: '2px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{d}</div>
               ))}
             </div>
 
             {/* Calendar grid */}
             {loading ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <p style={{ color: '#7A8A99', fontSize: 13 }}>Loading...</p>
+                <p style={{ color: theme.palette.text.secondary, fontSize: 13 }}>{t('calendar.loading')}</p>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3, flex: 1, alignContent: 'start' }}>
@@ -145,13 +164,13 @@ export default function CalendarPage() {
                     <button key={day}
                       onClick={() => status !== 'future' && setSelectedDay(day === selectedDay ? null : day)}
                       style={{
-                        minHeight: 36, borderRadius: 8, border: isSel ? '2px solid #1976D2' : isToday ? `2px solid ${st.border}` : `1px solid ${st.border}`,
-                        background: isSel ? '#E3F2FD' : st.bg, color: isSel ? '#1565C0' : st.color,
+                        minHeight: 36, borderRadius: 8, border: isSel ? `2px solid ${theme.palette.primary.main}` : isToday ? `2px solid ${st.border}` : `1px solid ${st.border}`,
+                        background: isSel ? (theme.palette.mode === 'dark' ? '#1E3A8A' : '#E3F2FD') : st.bg, color: isSel ? (theme.palette.mode === 'dark' ? '#93C5FD' : '#1565C0') : st.color,
                         fontWeight: isToday || isSel ? 800 : 600, fontSize: 12,
                         cursor: status === 'future' ? 'default' : 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         position: 'relative', transition: 'all 0.15s', outline: 'none',
-                        boxShadow: isSel ? '0 0 0 3px rgba(25,118,210,0.15)' : 'none',
+                        boxShadow: isSel ? `0 0 0 3px ${theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.4)' : 'rgba(25,118,210,0.15)'}` : 'none',
                       }}>
                       {day}
                       {(status === 'present' || status === 'invalid') && (
@@ -167,20 +186,20 @@ export default function CalendarPage() {
           {/* Day detail */}
           {selectedDay && selectedStatus && selectedStatus !== 'future' && (
             <div style={{ ...cardStyle, borderLeft: `4px solid ${DAY_STYLES[selectedStatus]?.border}`, flexShrink: 0, padding: '14px 18px' }}>
-              <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 700, color: '#1a2340' }}>
-                {selectedDay} {MONTHS_EN[month]} {year}
+              <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 700, color: theme.palette.text.primary }}>
+                {selectedDay} {months[month]} {year}
                 <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 12, background: DAY_STYLES[selectedStatus]?.bg, color: DAY_STYLES[selectedStatus]?.color }}>
                   {DAY_STYLES[selectedStatus]?.label}
                 </span>
               </p>
               {selectedPts.length === 0 ? (
-                <p style={{ color: '#7A8A99', fontSize: 12, margin: 0 }}>{selectedStatus === 'weekend' ? 'Rest day.' : 'No logs recorded for this day.'}</p>
+                <p style={{ color: theme.palette.text.secondary, fontSize: 12, margin: 0 }}>{selectedStatus === 'weekend' ? t('calendar.restDay') : t('calendar.noLogs')}</p>
               ) : (
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {selectedPts.sort((a, b) => (a.heure || '').localeCompare(b.heure || '')).map((p, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 8, background: p.type === 'entree' ? '#E3F2FD' : '#FFF8E1', border: `1px solid ${p.type === 'entree' ? '#90CAF9' : '#FFE082'}` }}>
-                      {p.type === 'entree' ? <LoginIcon style={{ fontSize: 13, color: '#1565C0' }} /> : <LogoutIcon style={{ fontSize: 13, color: '#E65100' }} />}
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#1a2340' }}>{p.heure || '--'}</span>
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 8, background: p.type === 'entree' ? (theme.palette.mode === 'dark' ? '#1E3A8A' : '#E3F2FD') : (theme.palette.mode === 'dark' ? '#451A03' : '#FFF8E1'), border: `1px solid ${p.type === 'entree' ? (theme.palette.mode === 'dark' ? '#3B82F6' : '#90CAF9') : (theme.palette.mode === 'dark' ? '#78350F' : '#FFE082')}` }}>
+                      {p.type === 'entree' ? <LoginIcon style={{ fontSize: 13, color: theme.palette.mode === 'dark' ? '#60A5FA' : '#1565C0' }} /> : <LogoutIcon style={{ fontSize: 13, color: theme.palette.mode === 'dark' ? '#FBBF24' : '#E65100' }} />}
+                      <span style={{ fontSize: 12, fontWeight: 700, color: theme.palette.text.primary }}>{p.heure || '--'}</span>
                       <span style={{ fontSize: 11 }}>{p.valide ? '✅' : '❌'}</span>
                     </div>
                   ))}
@@ -193,11 +212,11 @@ export default function CalendarPage() {
         {/* Right: stats + legend + tip */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={cardStyle}>
-            <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#1a2340' }}>This Month — {MONTHS_EN[month]}</p>
+            <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: theme.palette.text.primary }}>{t('calendar.thisMonthHeader', { month: months[month] })}</p>
             {[
-              { label: 'Present', value: presentCount, color: '#2E7D32', bg: '#E8F5E9', border: '#A5D6A7' },
-              { label: 'Absent', value: absentCount, color: '#C62828', bg: '#FFEBEE', border: '#FFCDD2' },
-              { label: 'Working Days', value: workdaysPassed, color: '#1565C0', bg: '#E3F2FD', border: '#90CAF9' },
+              { label: t('calendar.statPresent'), value: presentCount, color: theme.palette.mode === 'dark' ? '#34D399' : '#2E7D32', bg: theme.palette.mode === 'dark' ? '#064E3B' : '#E8F5E9', border: theme.palette.mode === 'dark' ? '#047857' : '#A5D6A7' },
+              { label: t('calendar.statAbsent'), value: absentCount, color: theme.palette.mode === 'dark' ? '#F87171' : '#C62828', bg: theme.palette.mode === 'dark' ? '#7F1D1D' : '#FFEBEE', border: theme.palette.mode === 'dark' ? '#B91C1C' : '#FFCDD2' },
+              { label: t('calendar.statWorkingDays'), value: workdaysPassed, color: theme.palette.mode === 'dark' ? '#60A5FA' : '#1565C0', bg: theme.palette.mode === 'dark' ? '#1E3A8A' : '#E3F2FD', border: theme.palette.mode === 'dark' ? '#3B82F6' : '#90CAF9' },
             ].map(({ label, value, color, bg, border }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 9, background: bg, border: `1px solid ${border}`, marginBottom: 8 }}>
                 <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color }}>{label}</p>
@@ -207,19 +226,19 @@ export default function CalendarPage() {
           </div>
 
           <div style={cardStyle}>
-            <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#1a2340' }}>Legend</p>
+            <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: theme.palette.text.primary }}>{t('calendar.legendTitle')}</p>
             {(['present','absent','invalid','weekend','future']).map(status => (
               <div key={status} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8 }}>
                 <div style={{ width: 14, height: 14, borderRadius: 4, background: DAY_STYLES[status].bg, border: `1.5px solid ${DAY_STYLES[status].border}`, flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: '#4A5568', fontWeight: 500 }}>{DAY_STYLES[status].label}</span>
+                <span style={{ fontSize: 12, color: theme.palette.text.secondary, fontWeight: 500 }}>{DAY_STYLES[status].label}</span>
               </div>
             ))}
           </div>
 
-          <div style={{ background: '#F5F6FA', borderRadius: 12, border: '1px solid #E8EAED', padding: '12px 16px' }}>
-            <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: '#1a2340' }}>💡 Tip</p>
-            <p style={{ margin: 0, fontSize: 11, color: '#7A8A99', lineHeight: 1.7 }}>
-              Click on a day to view its detailed check-in logs.
+          <div style={{ background: theme.palette.mode === 'dark' ? '#1E293B' : '#F5F6FA', borderRadius: 12, border: `1px solid ${theme.palette.divider}`, padding: '12px 16px' }}>
+            <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: theme.palette.text.primary }}>{t('calendar.tipTitle')}</p>
+            <p style={{ margin: 0, fontSize: 11, color: theme.palette.text.secondary, lineHeight: 1.7 }}>
+              {t('calendar.tipText')}
             </p>
           </div>
         </div>

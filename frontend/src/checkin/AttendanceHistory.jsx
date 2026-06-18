@@ -9,10 +9,14 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import EventNoteIcon from '@mui/icons-material/EventNote';
+import { useLanguage } from "../context/LanguageContext";
+import { useTheme } from "@mui/material";
 
 const today = new Date().toISOString().split("T")[0];
 
 export default function AttendanceHistory() {
+  const { t } = useLanguage();
+  const theme = useTheme();
   const [pointages, setPointages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -20,21 +24,34 @@ export default function AttendanceHistory() {
 
   const userId = localStorage.getItem("userId");
 
-  const fetchPointages = async (selectedDate) => {
-    setLoading(true);
-    setError("");
+  const fetchPointages = async (selectedDate, silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setError("");
+    }
     try {
       const res = await api.get(`/pointage?userId=${userId}&date=${selectedDate}`);
       setPointages(res.data);
     } catch {
-      setError("Failed to load attendance logs.");
+      if (!silent) {
+        setError(t('history.errorLoad'));
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchPointages(date);
+  }, [date]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchPointages(date, true);
+    }, 30000); // 30 seconds auto-refresh
+    return () => clearInterval(interval);
   }, [date]);
 
   const entrees = pointages.filter((p) => p.type === "entree");
@@ -45,15 +62,16 @@ export default function AttendanceHistory() {
   const pageStyle = {
     marginLeft: '240px',
     padding: '40px',
-    backgroundColor: '#F5F6FA',
+    backgroundColor: theme.palette.background.default,
     minHeight: '100vh',
     fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
   };
 
   const cardStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.palette.background.paper,
     borderRadius: '12px',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+    boxShadow: theme.palette.mode === 'dark' ? '0 2px 8px rgba(0, 0, 0, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.08)',
+    border: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none',
     padding: '24px',
     marginBottom: '24px',
   };
@@ -62,11 +80,11 @@ export default function AttendanceHistory() {
     <div className="page-container" style={pageStyle}>
       {/* Header */}
       <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#1a2340', margin: '0 0 8px 0' }}>
-          Attendance History
+        <h1 style={{ fontSize: '28px', fontWeight: '700', color: theme.palette.text.primary, margin: '0 0 8px 0' }}>
+          {t('history.title')}
         </h1>
-        <p style={{ fontSize: '14px', color: '#7A8A99', margin: 0 }}>
-          View your daily attendance logs
+        <p style={{ fontSize: '14px', color: theme.palette.text.secondary, margin: 0 }}>
+          {t('history.subtitle')}
         </p>
       </div>
 
@@ -76,17 +94,17 @@ export default function AttendanceHistory() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{
               width: 44, height: 44, borderRadius: '10px',
-              background: '#E3F2FD',
+              background: theme.palette.mode === 'dark' ? '#1E3A8A' : '#E3F2FD',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <CalendarTodayIcon style={{ fontSize: 22, color: '#1976D2' }} />
+              <CalendarTodayIcon style={{ fontSize: 22, color: theme.palette.primary.main }} />
             </div>
             <div style={{ flex: 1 }}>
               <label style={{
                 display: 'block', fontSize: '12px', fontWeight: '600',
-                color: '#7A8A99', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6,
+                color: theme.palette.text.secondary, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6,
               }}>
-                Selected Date
+                {t('history.selectedDateLabel')}
               </label>
               <input
                 type="date"
@@ -96,11 +114,11 @@ export default function AttendanceHistory() {
                 style={{
                   fontSize: '14px',
                   padding: '8px 12px',
-                  border: '1px solid #D0D5DD',
+                  border: `1px solid ${theme.palette.divider}`,
                   borderRadius: '8px',
                   fontFamily: 'inherit',
-                  color: '#1a2340',
-                  background: '#F5F6FA',
+                  color: theme.palette.text.primary,
+                  background: theme.palette.mode === 'dark' ? '#1E293B' : '#F5F6FA',
                   cursor: 'pointer',
                 }}
               />
@@ -113,31 +131,32 @@ export default function AttendanceHistory() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
             {[
               {
-                label: '1st Entry',
+                label: t('history.stat1stEntry'),
                 value: premEntree,
-                icon: <LoginIcon style={{ fontSize: 20, color: '#1976D2' }} />,
-                bg: '#E3F2FD',
-                valueColor: '#1565C0',
+                icon: <LoginIcon style={{ fontSize: 20, color: theme.palette.mode === 'dark' ? '#60A5FA' : '#1976D2' }} />,
+                bg: theme.palette.mode === 'dark' ? '#1E3A8A' : '#E3F2FD',
+                valueColor: theme.palette.mode === 'dark' ? '#60A5FA' : '#1565C0',
               },
               {
-                label: 'Last Exit',
+                label: t('history.statLastExit'),
                 value: dernSortie,
-                icon: <LogoutIcon style={{ fontSize: 20, color: '#FF9500' }} />,
-                bg: '#FFF8E1',
-                valueColor: '#E65100',
+                icon: <LogoutIcon style={{ fontSize: 20, color: theme.palette.mode === 'dark' ? '#FBBF24' : '#FF9500' }} />,
+                bg: theme.palette.mode === 'dark' ? '#451A03' : '#FFF8E1',
+                valueColor: theme.palette.mode === 'dark' ? '#FBBF24' : '#E65100',
               },
               {
-                label: 'Total Logs',
+                label: t('history.statTotalLogs'),
                 value: pointages.length,
-                icon: <AccessTimeIcon style={{ fontSize: 20, color: '#4CAF50' }} />,
-                bg: '#E8F5E9',
-                valueColor: '#2E7D32',
+                icon: <AccessTimeIcon style={{ fontSize: 20, color: theme.palette.mode === 'dark' ? '#34D399' : '#4CAF50' }} />,
+                bg: theme.palette.mode === 'dark' ? '#064E3B' : '#E8F5E9',
+                valueColor: theme.palette.mode === 'dark' ? '#34D399' : '#2E7D32',
               },
             ].map(({ label, value, icon, bg, valueColor }) => (
               <div key={label} style={{
-                backgroundColor: '#FFFFFF',
+                backgroundColor: theme.palette.background.paper,
                 borderRadius: '12px',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                boxShadow: theme.palette.mode === 'dark' ? '0 2px 8px rgba(0, 0, 0, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.08)',
+                border: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none',
                 padding: '20px 24px',
               }}>
                 <div style={{
@@ -148,7 +167,7 @@ export default function AttendanceHistory() {
                 }}>
                   {icon}
                 </div>
-                <p style={{ margin: '0 0 4px', fontSize: '12px', color: '#7A8A99', fontWeight: '500' }}>{label}</p>
+                <p style={{ margin: '0 0 4px', fontSize: '12px', color: theme.palette.text.secondary, fontWeight: '500' }}>{label}</p>
                 <p style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: valueColor }}>{value}</p>
               </div>
             ))}
@@ -157,9 +176,10 @@ export default function AttendanceHistory() {
 
         {/* Pointage list */}
         <div style={{
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.palette.background.paper,
           borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+          boxShadow: theme.palette.mode === 'dark' ? '0 2px 8px rgba(0, 0, 0, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.08)',
+          border: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none',
           overflow: 'hidden',
         }}>
           {/* Table header */}
@@ -167,13 +187,13 @@ export default function AttendanceHistory() {
             display: 'grid',
             gridTemplateColumns: '80px 1fr 120px 100px',
             padding: '12px 24px',
-            background: '#F5F6FA',
-            borderBottom: '2px solid #E8EAED',
+            background: theme.palette.mode === 'dark' ? '#1E293B' : '#F5F6FA',
+            borderBottom: `2px solid ${theme.palette.divider}`,
           }}>
-            {['Time', 'Type', 'GPS Position', 'Status'].map((h) => (
+            {[t('history.colTime'), t('history.colType'), t('history.colGps'), t('history.colStatus')].map((h) => (
               <span key={h} style={{
                 fontSize: '12px', fontWeight: '600',
-                color: '#1a2340', textTransform: 'uppercase', letterSpacing: '0.04em',
+                color: theme.palette.text.primary, textTransform: 'uppercase', letterSpacing: '0.04em',
               }}>
                 {h}
               </span>
@@ -182,13 +202,13 @@ export default function AttendanceHistory() {
 
           {loading ? (
             <div style={{ padding: '60px', textAlign: 'center' }}>
-              <div style={{ fontSize: '13px', color: '#7A8A99', fontWeight: '500' }}>
-                Loading...
+              <div style={{ fontSize: '13px', color: theme.palette.text.secondary, fontWeight: '500' }}>
+                {t('history.loading')}
               </div>
             </div>
           ) : error ? (
             <div style={{ padding: '48px', textAlign: 'center' }}>
-              <p style={{ color: '#C62828', fontSize: '14px', fontWeight: '500', marginBottom: 16 }}>
+              <p style={{ color: theme.palette.error.main, fontSize: '14px', fontWeight: '500', marginBottom: 16 }}>
                 ⚠ {error}
               </p>
               <button
@@ -196,30 +216,30 @@ export default function AttendanceHistory() {
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   padding: '8px 20px',
-                  background: '#F5F6FA', border: '1px solid #E8EAED',
+                  background: theme.palette.mode === 'dark' ? '#1E293B' : '#F5F6FA', border: `1px solid ${theme.palette.divider}`,
                   borderRadius: '8px', cursor: 'pointer',
-                  fontSize: '13px', fontWeight: '600', color: '#1a2340',
+                  fontSize: '13px', fontWeight: '600', color: theme.palette.text.primary,
                 }}
               >
                 <RefreshIcon style={{ fontSize: 16 }} />
-                Retry
+                {t('history.btnRetry')}
               </button>
             </div>
           ) : pointages.length === 0 ? (
             <div style={{ padding: '60px 40px', textAlign: 'center' }}>
               <div style={{
                 width: 64, height: 64, borderRadius: '50%',
-                background: '#F5F6FA',
+                background: theme.palette.mode === 'dark' ? '#1E293B' : '#F5F6FA',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 20px',
               }}>
-                <EventNoteIcon style={{ fontSize: 32, color: '#B0BEC5' }} />
+                <EventNoteIcon style={{ fontSize: 32, color: theme.palette.text.secondary }} />
               </div>
-              <p style={{ fontSize: '15px', fontWeight: '700', color: '#1a2340', margin: '0 0 8px' }}>
-                No logs recorded for this day
+              <p style={{ fontSize: '15px', fontWeight: '700', color: theme.palette.text.primary, margin: '0 0 8px' }}>
+                {t('history.noLogsTitle')}
               </p>
-              <p style={{ fontSize: '13px', color: '#7A8A99', margin: 0 }}>
-                Select another date or complete a check-in/out.
+              <p style={{ fontSize: '13px', color: theme.palette.text.secondary, margin: 0 }}>
+                {t('history.noLogsDesc')}
               </p>
             </div>
           ) : (
@@ -232,11 +252,11 @@ export default function AttendanceHistory() {
                     display: 'grid',
                     gridTemplateColumns: '80px 1fr 120px 100px',
                     padding: '16px 24px',
-                    borderBottom: i < pointages.length - 1 ? '1px solid #E8EAED' : 'none',
+                    borderBottom: i < pointages.length - 1 ? `1px solid ${theme.palette.divider}` : 'none',
                     alignItems: 'center',
                     transition: 'background 0.15s',
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#FAFBFC'}
+                  onMouseEnter={(e) => e.currentTarget.style.background = theme.palette.mode === 'dark' ? '#1E293B' : '#FAFBFC'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   {/* Time */}
@@ -246,12 +266,12 @@ export default function AttendanceHistory() {
                     <div style={{
                       width: 44, height: 44,
                       borderRadius: '10px',
-                      background: isEntree ? '#E3F2FD' : '#FFF8E1',
+                      background: isEntree ? (theme.palette.mode === 'dark' ? '#1E3A8A' : '#E3F2FD') : (theme.palette.mode === 'dark' ? '#451A03' : '#FFF8E1'),
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       <span style={{
                         fontSize: '13px', fontWeight: '700',
-                        color: isEntree ? '#1565C0' : '#E65100',
+                        color: isEntree ? (theme.palette.mode === 'dark' ? '#60A5FA' : '#1565C0') : (theme.palette.mode === 'dark' ? '#FBBF24' : '#E65100'),
                       }}>
                         {p.heure || "--"}
                       </span>
@@ -264,21 +284,21 @@ export default function AttendanceHistory() {
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                       padding: '5px 14px',
                       borderRadius: '20px', fontSize: '13px', fontWeight: '600',
-                      background: isEntree ? '#E3F2FD' : '#FFF8E1',
-                      color: isEntree ? '#1565C0' : '#E65100',
+                      background: isEntree ? (theme.palette.mode === 'dark' ? '#1E3A8A' : '#E3F2FD') : (theme.palette.mode === 'dark' ? '#451A03' : '#FFF8E1'),
+                      color: isEntree ? (theme.palette.mode === 'dark' ? '#60A5FA' : '#1565C0') : (theme.palette.mode === 'dark' ? '#FBBF24' : '#E65100'),
                     }}>
                       {isEntree
                         ? <LoginIcon style={{ fontSize: 14 }} />
                         : <LogoutIcon style={{ fontSize: 14 }} />
                       }
-                      {isEntree ? "Entry" : "Exit"}
+                      {isEntree ? t('history.typeEntry') : t('history.typeExit')}
                     </span>
                   </div>
 
                   {/* GPS */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <LocationOnIcon style={{ fontSize: 14, color: '#7A8A99' }} />
-                    <span style={{ fontSize: '12px', color: '#7A8A99' }}>
+                    <LocationOnIcon style={{ fontSize: 14, color: theme.palette.text.secondary }} />
+                    <span style={{ fontSize: '12px', color: theme.palette.text.secondary }}>
                       {p.latitude?.toFixed(3)}, {p.longitude?.toFixed(3)}
                     </span>
                   </div>
@@ -289,14 +309,14 @@ export default function AttendanceHistory() {
                       display: 'inline-flex', alignItems: 'center', gap: 4,
                       padding: '4px 12px',
                       borderRadius: '20px', fontSize: '12px', fontWeight: '600',
-                      background: p.valide ? '#E8F5E9' : '#FFEBEE',
-                      color: p.valide ? '#2E7D32' : '#C62828',
+                      background: p.valide ? (theme.palette.mode === 'dark' ? '#064E3B' : '#E8F5E9') : (theme.palette.mode === 'dark' ? '#7F1D1D' : '#FFEBEE'),
+                      color: p.valide ? (theme.palette.mode === 'dark' ? '#34D399' : '#2E7D32') : (theme.palette.mode === 'dark' ? '#F87171' : '#C62828'),
                     }}>
                       {p.valide
                         ? <CheckCircleIcon style={{ fontSize: 13 }} />
                         : <CancelIcon style={{ fontSize: 13 }} />
                       }
-                      {p.valide ? "Valid" : "Invalid"}
+                      {p.valide ? t('history.statusValid') : t('history.statusInvalid')}
                     </span>
                   </div>
                 </div>

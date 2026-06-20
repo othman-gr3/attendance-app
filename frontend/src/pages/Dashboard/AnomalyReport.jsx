@@ -6,11 +6,15 @@ import CircularProgress from '@mui/material/CircularProgress';
 import SearchIcon from '@mui/icons-material/Search';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CloseIcon from '@mui/icons-material/Close';
+import TableViewIcon from '@mui/icons-material/TableView';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '@mui/material';
+import { useExport } from '../../hooks/useExport';
 
 const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, employee: propEmployee, onStatsUpdated }) => {
     const { t, language } = useLanguage();
+    const { exportToExcel, exportToPDF, exporting } = useExport();
     const theme = useTheme();
     const isStandalone = !propUserId;
 
@@ -388,9 +392,71 @@ const AnomalyReport = ({ userId: propUserId, month: propMonth, year: propYear, e
                 )}
 
                 <div style={cardStyle}>
-                    <div style={{ marginBottom: '16px' }}>
-                        <h3 style={titleStyle}>{t('anomalies.title')}</h3>
-                        <p style={{ margin: 0, fontSize: '12px', color: theme.palette.text.secondary }}>{t('anomalies.subtitle')}</p>
+                <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                            <h3 style={titleStyle}>{t('anomalies.title')}</h3>
+                            <p style={{ margin: 0, fontSize: '12px', color: theme.palette.text.secondary }}>{t('anomalies.subtitle')}</p>
+                        </div>
+                        {/* Export buttons – shown when there are anomalies */}
+                        {anomalies.length > 0 && (() => {
+                            const employeeName = activeEmployee?.nom ?? activeUserId;
+                            const typeLabels = {
+                                retard: 'Late', absence: 'Absence',
+                                sortie_anticipee: 'Early Exit', insuffisance: 'Insufficient Hours'
+                            };
+                            const exportRows = filteredAnomalies.map(a => [
+                                a.date, typeLabels[a.type] ?? a.type, a.detail
+                            ]);
+                            const exportTitle = `Anomalies — ${employeeName} — ${activeMonth}/${activeYear}`;
+                            return (
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        onClick={() => exportToExcel({
+                                            filename: `anomalies_${activeUserId}_${activeYear}_${activeMonth}`,
+                                            sheetName: 'Anomalies',
+                                            headers: ['Date', 'Type', 'Details'],
+                                            rows: exportRows,
+                                        })}
+                                        disabled={exporting}
+                                        title="Export to Excel"
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: '5px',
+                                            padding: '7px 14px',
+                                            backgroundColor: '#217346', color: '#FFFFFF',
+                                            border: 'none', borderRadius: '7px',
+                                            cursor: exporting ? 'not-allowed' : 'pointer',
+                                            fontSize: '12px', fontWeight: '600',
+                                        }}
+                                        onMouseEnter={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = '#185c39'; }}
+                                        onMouseLeave={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = '#217346'; }}
+                                    >
+                                        <TableViewIcon style={{ fontSize: '15px' }} /> Excel
+                                    </button>
+                                    <button
+                                        onClick={() => exportToPDF({
+                                            filename: `anomalies_${activeUserId}_${activeYear}_${activeMonth}`,
+                                            title: exportTitle,
+                                            headers: ['Date', 'Type', 'Details'],
+                                            rows: exportRows,
+                                        })}
+                                        disabled={exporting}
+                                        title="Export to PDF"
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: '5px',
+                                            padding: '7px 14px',
+                                            backgroundColor: '#C0392B', color: '#FFFFFF',
+                                            border: 'none', borderRadius: '7px',
+                                            cursor: exporting ? 'not-allowed' : 'pointer',
+                                            fontSize: '12px', fontWeight: '600',
+                                        }}
+                                        onMouseEnter={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = '#96281B'; }}
+                                        onMouseLeave={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = '#C0392B'; }}
+                                    >
+                                        <PictureAsPdfIcon style={{ fontSize: '15px' }} /> PDF
+                                    </button>
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     {loading ? (

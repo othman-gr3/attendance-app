@@ -6,10 +6,14 @@ import { useLanguage } from '../../context/LanguageContext';
 import SearchIcon from '@mui/icons-material/Search';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CloseIcon from '@mui/icons-material/Close';
+import TableViewIcon from '@mui/icons-material/TableView';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import { Drawer, Box, IconButton, Typography, Divider, useTheme } from '@mui/material';
+import { useExport } from '../../hooks/useExport';
 
 const DashboardPage = () => {
     const { t, language } = useLanguage();
+    const { exportToExcel, exportToPDF, exporting } = useExport();
     const theme = useTheme();
     const [users, setUsers] = useState([]);
     const [selectedUserId, setSelectedUserId] = useState('');
@@ -535,7 +539,7 @@ const DashboardPage = () => {
                     </div>
 
                     {/* Filter Bar */}
-                    <div style={{ ...filterBarStyle, gridTemplateColumns: '1fr 1fr 1fr 1.2fr' }}>
+                    <div style={{ ...filterBarStyle, gridTemplateColumns: '1fr 1fr 1fr 1fr 1.2fr' }}>
                         <div>
                             <label style={labelStyle}>{t('dashboard.fieldMonth')}</label>
                             <select
@@ -577,6 +581,68 @@ const DashboardPage = () => {
                         >
                             {loading ? t('dashboard.btnLoading') : t('dashboard.btnRefresh')}
                         </button>
+
+                        {/* Export buttons – visible when a user & stats are loaded */}
+                        {stats && (() => {
+                            const selectedUser = users.find(u => u.id === selectedUserId);
+                            const exportHeaders = ['Metric', 'Value'];
+                            const exportRows = [
+                                ['Hours Worked', `${stats.heuresTravaillees.toFixed(1)} h`],
+                                ['Late Arrivals', stats.retards],
+                                ['Absences', stats.absences],
+                                ['Leave Days Left', stats.congesRestants],
+                                ['Presence Rate', `${stats.tauxPresence} %`],
+                            ];
+                            const exportTitle = `Stats — ${selectedUser?.nom ?? ''} — ${month}/${year}`;
+                            return (
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        onClick={() => exportToExcel({
+                                            filename: `stats_${selectedUserId}_${year}_${month}`,
+                                            sheetName: 'Stats',
+                                            headers: exportHeaders,
+                                            rows: exportRows,
+                                        })}
+                                        disabled={exporting}
+                                        title="Export to Excel"
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: '5px',
+                                            padding: '10px 16px',
+                                            backgroundColor: '#217346', color: '#FFFFFF',
+                                            border: 'none', borderRadius: '8px',
+                                            cursor: exporting ? 'not-allowed' : 'pointer',
+                                            fontSize: '13px', fontWeight: '600',
+                                        }}
+                                        onMouseEnter={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = '#185c39'; }}
+                                        onMouseLeave={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = '#217346'; }}
+                                    >
+                                        <TableViewIcon style={{ fontSize: '16px' }} /> XLS
+                                    </button>
+                                    <button
+                                        onClick={() => exportToPDF({
+                                            filename: `stats_${selectedUserId}_${year}_${month}`,
+                                            title: exportTitle,
+                                            headers: exportHeaders,
+                                            rows: exportRows,
+                                        })}
+                                        disabled={exporting}
+                                        title="Export to PDF"
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: '5px',
+                                            padding: '10px 16px',
+                                            backgroundColor: '#C0392B', color: '#FFFFFF',
+                                            border: 'none', borderRadius: '8px',
+                                            cursor: exporting ? 'not-allowed' : 'pointer',
+                                            fontSize: '13px', fontWeight: '600',
+                                        }}
+                                        onMouseEnter={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = '#96281B'; }}
+                                        onMouseLeave={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = '#C0392B'; }}
+                                    >
+                                        <PictureAsPdfIcon style={{ fontSize: '16px' }} /> PDF
+                                    </button>
+                                </div>
+                            );
+                        })()}
 
                         <button
                             onClick={() => setOpenAnomalyDrawer(true)}

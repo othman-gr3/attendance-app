@@ -12,9 +12,12 @@ import {
     Close, Email, Badge, Key, SmartToy, Edit, CameraAlt,
     Warning, CheckCircle, ErrorOutline
 } from '@mui/icons-material';
+import TableViewIcon from '@mui/icons-material/TableView';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import api from '../../api/axios';
 import Navbar from '../../components/Navbar';
 import { useLanguage } from '../../context/LanguageContext';
+import { useExport } from '../../hooks/useExport';
 
 const PRIMARY = '#0F2942';
 
@@ -24,6 +27,7 @@ const emptyForm = {
 
 export default function EmployeeListPage() {
     const { t } = useLanguage();
+    const { exportToExcel, exportToPDF, exporting } = useExport();
     const theme = useTheme();
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -498,7 +502,63 @@ export default function EmployeeListPage() {
             {error && <div style={messageStyle('error')}>{error}</div>}
 
             <div style={topBarStyle}>
-                <div></div>
+                {/* Export Buttons */}
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <button
+                        onClick={() => exportToExcel({
+                            filename: 'employees',
+                            sheetName: 'Employees',
+                            headers: ['Name', 'Email', 'Role'],
+                            rows: employees.map(e => [e.nom, e.email, e.role === 'ROLE_ADMIN' ? 'Admin' : 'Employee']),
+                        })}
+                        disabled={exporting || employees.length === 0}
+                        title="Export to Excel"
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '9px 18px',
+                            backgroundColor: exporting ? '#ccc' : '#217346',
+                            color: '#FFFFFF',
+                            border: 'none', borderRadius: '8px',
+                            cursor: exporting || employees.length === 0 ? 'not-allowed' : 'pointer',
+                            fontSize: '13px', fontWeight: '600',
+                            transition: 'background-color 0.2s ease',
+                            opacity: employees.length === 0 ? 0.5 : 1,
+                        }}
+                        onMouseEnter={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = '#185c39'; }}
+                        onMouseLeave={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = '#217346'; }}
+                    >
+                        <TableViewIcon style={{ fontSize: '17px' }} />
+                        Excel
+                    </button>
+                    <button
+                        onClick={() => exportToPDF({
+                            filename: 'employees',
+                            title: 'Employee Directory',
+                            subtitle: `Total: ${employees.length} users`,
+                            headers: ['Name', 'Email', 'Role'],
+                            rows: employees.map(e => [e.nom, e.email, e.role === 'ROLE_ADMIN' ? 'Admin' : 'Employee']),
+                        })}
+                        disabled={exporting || employees.length === 0}
+                        title="Export to PDF"
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '9px 18px',
+                            backgroundColor: exporting ? '#ccc' : '#C0392B',
+                            color: '#FFFFFF',
+                            border: 'none', borderRadius: '8px',
+                            cursor: exporting || employees.length === 0 ? 'not-allowed' : 'pointer',
+                            fontSize: '13px', fontWeight: '600',
+                            transition: 'background-color 0.2s ease',
+                            opacity: employees.length === 0 ? 0.5 : 1,
+                        }}
+                        onMouseEnter={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = '#96281B'; }}
+                        onMouseLeave={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = '#C0392B'; }}
+                    >
+                        <PictureAsPdfIcon style={{ fontSize: '17px' }} />
+                        PDF
+                    </button>
+                </div>
+
                 <button
                     onClick={() => {
                         setIsEditMode(false);

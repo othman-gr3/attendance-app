@@ -34,7 +34,7 @@
 | 📍 **GPS Geolocation** | Check-ins validated against a defined office radius |
 | 📊 **Real-time Dashboard** | Live stats with 30-second auto-refresh — hours worked, absences, lates, leave balance, presence rate |
 | 📈 **Anomaly Detection** | Auto-detect late arrivals, early exits, absences, and insufficient hours |
-| 🤖 **AI Chatbot** | Context-aware assistant (Google Gemini) that reads real employee data to answer questions |
+| 🤖 **AI Chatbot** | Context-aware assistant (via OpenRouter) that reads real employee data to answer questions |
 | 🤖 **AI Reminder Generator** | Generates personalised absence reminder emails with one click |
 | 🏖️ **Leave Management** | Employees submit leave requests; admins approve/reject with full calendar view |
 | 🔔 **Notification System** | Admins send notifications; employees respond with justifications and attachments |
@@ -51,7 +51,7 @@
 attendance-app/
 ├── src/                          # Spring Boot Backend (Java 17)
 │   └── main/java/com/attendance/
-│       ├── ai/                   # Gemini AI integration (chat + reminder)
+│       ├── ai/                   # OpenRouter AI integration (chat + reminder)
 │       ├── auth/                 # JWT filter, login/register, token service
 │       ├── config/               # Security config, CORS config
 │       ├── conge/                # Leave request management
@@ -107,7 +107,7 @@ attendance-app/
 | **Apache POI** | 5.2.5 | Excel `.xlsx` export |
 | **iText PDF** | 5.5.13.3 | PDF report generation |
 | **Lombok** | Latest | Boilerplate reduction |
-| **Google Gemini API** | Latest | AI chat & reminder generation |
+| **OpenRouter API** | Latest | AI chat & reminder generation (free models) |
 
 ### Frontend
 
@@ -134,7 +134,7 @@ attendance-app/
 - Maven 3.8+
 - Node.js 18+ & npm
 - MongoDB instance (local or MongoDB Atlas)
-- Google Gemini API key
+- OpenRouter API key (free at [openrouter.ai](https://openrouter.ai))
 
 ---
 
@@ -156,16 +156,17 @@ Create or edit `src/main/resources/application.properties`:
 ```properties
 # MongoDB
 spring.data.mongodb.uri=mongodb://localhost:27017/attendance_db
+spring.data.mongodb.database=attendance_db
 
 # JWT
 jwt.secret=your-super-secret-key-at-least-256-bits
 jwt.expiration=86400000
 
-# Gemini AI
-gemini.api.key=YOUR_GEMINI_API_KEY
-
 # Server
 server.port=8080
+
+# AI (OpenRouter)
+openrouter.api.key=YOUR_OPENROUTER_API_KEY
 ```
 
 #### Run the backend
@@ -286,7 +287,7 @@ The app will open at `http://localhost:3000`
 - Backend validates distance from the office location
 - Both QR + GPS must pass for a check-in to be marked `valid`
 
-### 🤖 AI Assistant (Google Gemini)
+### 🤖 AI Assistant (OpenRouter)
 - Every chat message enriches the prompt with **real DB data** — attendance history, leave status, this month's stats
 - Admin chatbot also receives all-employee stats for fleet-level questions
 - AI Reminder generates a professional, personalized email message for absent employees
@@ -330,9 +331,10 @@ Language preference persists across sessions via `localStorage`. Every UI label,
 | Variable | Description |
 |---|---|
 | `spring.data.mongodb.uri` | MongoDB connection string |
+| `spring.data.mongodb.database` | MongoDB database name |
 | `jwt.secret` | JWT signing secret (min 256-bit) |
 | `jwt.expiration` | Token TTL in milliseconds |
-| `gemini.api.key` | Google Gemini API key |
+| `openrouter.api.key` | OpenRouter API key (get free key at openrouter.ai) |
 
 ### Frontend (`.env`)
 | Variable | Description |

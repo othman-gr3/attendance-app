@@ -19,7 +19,7 @@ import { Drawer, IconButton, useTheme } from '@mui/material';
 import { useThemeMode } from '../context/ThemeModeContext';
 
 const Sidebar = () => {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const { t } = useLanguage();
     const { themeMode, setThemeMode } = useThemeMode();
     const theme = useTheme();
@@ -70,8 +70,8 @@ const Sidebar = () => {
     }, [user?.userId]);
 
     const handleLogout = () => {
-        localStorage.clear();
-        navigate('/login');
+        logout();
+        navigate('/login', { replace: true });
     };
 
     const isActive = (path) => location.pathname === path;

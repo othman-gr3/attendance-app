@@ -1,14 +1,238 @@
-.dot-1, .dot-2, .dot-3 {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #0F2942;
-    animation: bounce 1.2s infinite;
-}
-.dot-2 { animation-delay: 0.2s; }
-.dot-3 { animation-delay: 0.4s; }
+/* ════════════════════════════════════════════════════
+   CHATBOT  –  Live Light Design
+   Palette:
+     Lavender  #D7A9C4
+     Gold      #FDDA80
+     Cyan      #7CEFFB
+     Sky       #29D2FD
+     Navy      #1220BF  (accent only)
+     White     #FEFEFE
+   ════════════════════════════════════════════════════ */
 
-@keyframes bounce {
-    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-    30% { transform: translateY(-6px); opacity: 1; }
+/* ── Typing dots ─────────────────────────────────── */
+.dot-1, .dot-2, .dot-3 {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #D7A9C4, #FDDA80);
+    animation: dotBounce 1.3s ease-in-out infinite;
+}
+.dot-2 { animation-delay: 0.18s; }
+.dot-3 { animation-delay: 0.36s; }
+
+@keyframes dotBounce {
+    0%, 60%, 100% { transform: translateY(0) scale(1);    opacity: 0.5; }
+    30%            { transform: translateY(-8px) scale(1.2); opacity: 1;   }
+}
+
+/* ── Chat window entrance ────────────────────────── */
+@keyframes chatOpen {
+    0%   { opacity: 0; transform: translateY(28px) scale(0.93); }
+    100% { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+.chatbot-window {
+    animation: chatOpen 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    transform-origin: bottom right;
+}
+
+/* ── Header animated gradient ────────────────────── */
+@keyframes headerShift {
+    0%   { background-position: 0%   50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0%   50%; }
+}
+
+.chatbot-header {
+    background: linear-gradient(
+        270deg,
+        #D7A9C4,
+        #FDDA80,
+        #7CEFFB,
+        #D7A9C4
+    );
+    background-size: 300% 300%;
+    animation: headerShift 6s ease infinite;
+}
+
+/* ── Shimmer sweep on header ─────────────────────── */
+@keyframes shimmer {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(200%);  }
+}
+
+.chatbot-header-shimmer {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(254,254,254,0.35) 50%,
+        transparent 100%
+    );
+    animation: shimmer 3.5s ease-in-out infinite;
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+/* ── Message entrance ────────────────────────────── */
+@keyframes msgFadeUp {
+    from { opacity: 0; transform: translateY(10px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+.chatbot-msg {
+    animation: msgFadeUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ── FAB wrapper (fixed position) ────────────────── */
+.chatbot-fab-wrapper {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1001;
+    animation: fabFloat 2.8s ease-in-out infinite;
+}
+
+/* ── FAB outer pulse rings ───────────────────────── */
+@keyframes fabRing1 {
+    0%   { transform: scale(1);   opacity: 0.55; }
+    100% { transform: scale(2.0); opacity: 0;    }
+}
+@keyframes fabRing2 {
+    0%   { transform: scale(1);   opacity: 0.35; }
+    100% { transform: scale(2.5); opacity: 0;    }
+}
+
+.chatbot-fab-ring1,
+.chatbot-fab-ring2 {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, #FDDA80 0%, #D7A9C4 60%, transparent 100%);
+    pointer-events: none;
+}
+.chatbot-fab-ring1 { animation: fabRing1 2.2s ease-out infinite; }
+.chatbot-fab-ring2 { animation: fabRing2 2.2s ease-out 1.1s infinite; }
+
+/* ── FAB float bob ───────────────────────────────── */
+@keyframes fabFloat {
+    0%, 100% { transform: translateY(0);  }
+    50%       { transform: translateY(-5px); }
+}
+
+/* ── FAB spinning border ─────────────────────────── */
+@keyframes spinBorder {
+    from { transform: rotate(0deg);   }
+    to   { transform: rotate(360deg); }
+}
+
+.chatbot-fab-spin-ring {
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    background: conic-gradient(
+        #FDDA80 0deg,
+        #7CEFFB 90deg,
+        #D7A9C4 180deg,
+        #29D2FD 270deg,
+        #FDDA80 360deg
+    );
+    animation: spinBorder 3s linear infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.chatbot-fab-spin-ring::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: #FEFEFE;
+}
+
+/* ── FAB button core ─────────────────────────────── */
+.chatbot-fab-btn {
+    position: relative;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, #FDDA80 0%, #D7A9C4 60%, #7CEFFB 100%);
+    background-size: 200% 200%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        0 6px 20px rgba(253,218,128,0.55),
+        0 2px 8px  rgba(215,169,196,0.4);
+    animation: fabGradShift 4s ease infinite;
+    outline: none;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.25s ease;
+}
+
+@keyframes fabGradShift {
+    0%, 100% { background-position: 0%   50%; }
+    50%       { background-position: 100% 50%; }
+}
+
+.chatbot-fab-btn:hover {
+    transform: scale(1.1);
+    box-shadow:
+        0 10px 28px rgba(253,218,128,0.65),
+        0 4px  12px rgba(41,210,253,0.35);
+}
+
+.chatbot-fab-btn:active {
+    transform: scale(0.93);
+}
+
+/* ── FAB icon rotate on toggle ───────────────────── */
+.chatbot-fab-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s;
+}
+.chatbot-fab-icon.is-open {
+    transform: rotate(135deg);
+}
+
+/* ── Orbiting sparkle particles ─────────────────── */
+@keyframes orbit {
+    from { transform: rotate(var(--start)) translateX(32px) rotate(calc(-1 * var(--start))); }
+    to   { transform: rotate(calc(var(--start) + 360deg)) translateX(32px) rotate(calc(-1 * (var(--start) + 360deg))); }
+}
+
+.chatbot-orb {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    margin: -3.5px;
+    pointer-events: none;
+    animation: orbit var(--dur, 3s) linear infinite;
+}
+.chatbot-orb-1 { --start: 0deg;   --dur: 3s;   background: #FDDA80; box-shadow: 0 0 6px #FDDA80; }
+.chatbot-orb-2 { --start: 120deg; --dur: 3.5s; background: #7CEFFB; box-shadow: 0 0 6px #7CEFFB; }
+.chatbot-orb-3 { --start: 240deg; --dur: 4s;   background: #D7A9C4; box-shadow: 0 0 6px #D7A9C4; }
+
+/* ── Custom scrollbar ────────────────────────────── */
+.chatbot-messages::-webkit-scrollbar       { width: 4px; }
+.chatbot-messages::-webkit-scrollbar-track { background: transparent; }
+.chatbot-messages::-webkit-scrollbar-thumb {
+    background: linear-gradient(#D7A9C4, #7CEFFB);
+    border-radius: 4px;
+}
+
+/* ── Bot avatar bob ──────────────────────────────── */
+@keyframes avatarBob {
+    0%, 100% { transform: translateY(0);    }
+    50%       { transform: translateY(-3px); }
+}
+
+.chatbot-bot-avatar {
+    animation: avatarBob 2.5s ease-in-out infinite;
 }

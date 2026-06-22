@@ -10,21 +10,58 @@ export default function QRScanner({ onScan, onClose }) {
   const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
-    const scanner = new Html5Qrcode("qr-reader");
-    scannerRef.current = scanner;
+    let scanner = null;
+    let isMounted = true;
 
-    scanner.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 220, height: 220 } },
-      (decodedText) => {
-        scanner.stop().then(() => onScan(decodedText)).catch(() => onScan(decodedText));
-      },
-      () => {}
-    ).then(() => setScanning(true))
-     .catch(() => setError("Impossible d'accéder à la caméra. Vérifiez les permissions."));
+    // Short delay to let previous unmount cycle complete cleanly
+    const initTimeout = setTimeout(() => {
+      if (!isMounted) return;
+
+      const container = document.getElementById("qr-reader");
+      if (container) {
+        container.innerHTML = ""; // Clear any leftover duplicate video elements
+      }
+
+      try {
+        scanner = new Html5Qrcode("qr-reader");
+        scannerRef.current = scanner;
+
+        scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 220, height: 220 } },
+          (decodedText) => {
+            if (scanner) {
+              scanner.stop()
+                .then(() => onScan(decodedText))
+                .catch(() => onScan(decodedText));
+            }
+          },
+          () => {}
+        ).then(() => {
+          if (isMounted) setScanning(true);
+        }).catch(() => {
+          if (isMounted) setError("Impossible d'accéder à la caméra. Vérifiez les permissions.");
+        });
+      } catch (e) {
+        if (isMounted) setError("Impossible d'accéder à la caméra. Vérifiez les permissions.");
+      }
+    }, 150);
 
     return () => {
-      scanner.isScanning && scanner.stop().catch(() => {});
+      isMounted = false;
+      clearTimeout(initTimeout);
+      if (scanner) {
+        if (scanner.isScanning) {
+          scanner.stop().catch(() => {});
+        } else {
+          // If unmounting before start completes, wait slightly and stop
+          setTimeout(() => {
+            try {
+              scanner.stop().catch(() => {});
+            } catch (err) {}
+          }, 300);
+        }
+      }
     };
   }, []);
 

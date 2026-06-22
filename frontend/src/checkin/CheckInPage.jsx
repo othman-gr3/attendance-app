@@ -16,7 +16,7 @@ import EventBusyIcon from '@mui/icons-material/EventBusy';
 import InfoIcon from '@mui/icons-material/Info';
 import WarningIcon from '@mui/icons-material/Warning';
 import { useLanguage } from "../context/LanguageContext";
-import { useTheme } from "@mui/material";
+import { useTheme, useMediaQuery } from "@mui/material";
 
 const STATUS = { IDLE: "idle", LOADING: "loading", SUCCESS: "success", ERROR: "error" };
 
@@ -51,6 +51,7 @@ function computeMonthStats(pointages) {
 export default function CheckInPage() {
   const { language, t } = useLanguage();
   const theme = useTheme();
+  const isMobile = useMediaQuery("(max-width:768px)");
   const [status, setStatus] = useState(STATUS.IDLE);
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
@@ -60,6 +61,7 @@ export default function CheckInPage() {
   const [gettingLocation, setGettingLocation] = useState(false);
   const [pointageType, setPointageType] = useState("entree");
   const [monthStats, setMonthStats] = useState(null);
+  const [devBypass, setDevBypass] = useState(false);
   const navigate = useNavigate();
 
   const userId = localStorage.getItem("userId");
@@ -77,6 +79,7 @@ export default function CheckInPage() {
   };
 
   const isTimeValid = () => {
+    if (devBypass) return true;
     const now = new Date();
     const hrs = now.getHours();
     const mins = now.getMinutes();
@@ -150,14 +153,16 @@ export default function CheckInPage() {
   };
 
   const pageStyle = {
-    marginLeft: '240px',
-    height: '100vh',
-    overflow: 'hidden',
+    marginLeft: isMobile ? '0' : '240px',
+    height: isMobile ? 'auto' : '100vh',
+    minHeight: isMobile ? 'calc(100vh - 56px)' : 'none',
+    overflow: isMobile ? 'visible' : 'hidden',
     backgroundColor: theme.palette.background.default,
     fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
     display: 'flex',
     flexDirection: 'column',
-    padding: '28px 32px',
+    padding: isMobile ? '16px' : '28px 32px',
+    paddingTop: isMobile ? '72px' : '28px',
     boxSizing: 'border-box',
     gap: 16,
   };
@@ -231,7 +236,7 @@ export default function CheckInPage() {
 
       {/* Quick stats row */}
       {monthStats && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, flexShrink: 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 12, flexShrink: 0 }}>
           {[
             { label: t('checkin.statMonthPresent'), value: monthStats.present, icon: <EventAvailableIcon style={{ fontSize: 20, color: theme.palette.mode === 'dark' ? '#34D399' : '#2E7D32' }} />, iconBg: theme.palette.mode === 'dark' ? '#064E3B' : '#C8E6C9', color: theme.palette.mode === 'dark' ? '#34D399' : '#2E7D32' },
             { label: t('checkin.statAbsent'), value: monthStats.absent, icon: <EventBusyIcon style={{ fontSize: 20, color: theme.palette.mode === 'dark' ? '#F87171' : '#C62828' }} />, iconBg: theme.palette.mode === 'dark' ? '#7F1D1D' : '#FFCDD2', color: theme.palette.mode === 'dark' ? '#F87171' : '#C62828' },
@@ -249,7 +254,7 @@ export default function CheckInPage() {
       )}
 
       {/* Main content — two columns */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, minHeight: 0 }}>
 
         {/* Left: form / status */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0, overflowY: 'auto' }}>
@@ -362,6 +367,59 @@ export default function CheckInPage() {
         {/* IDLE */}
         {status === STATUS.IDLE && (
           <>
+            {/* Dev Mode Controls */}
+            <div style={{
+              ...cardStyle,
+              background: theme.palette.mode === 'dark' ? '#1c1004' : '#FFF3e0',
+              border: '1px solid #ffe0b2',
+              padding: '12px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#e65100' }}>🧪 Mode Test / Dev Mode</span>
+                <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 22, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={devBypass}
+                    onChange={(e) => {
+                      setDevBypass(e.target.checked);
+                      if (e.target.checked && !location) {
+                        setLocation({ lat: 33.5874, lng: -7.5818 }); // Mock Casablanca location
+                      }
+                    }}
+                    style={{ opacity: 0, width: 0, height: 0 }}
+                  />
+                  <span style={{
+                    position: 'absolute', inset: 0,
+                    backgroundColor: devBypass ? '#ff9800' : '#ccc',
+                    borderRadius: 22,
+                    transition: '0.2s',
+                  }}>
+                    <span style={{
+                      position: 'absolute', height: 16, width: 16, left: devBypass ? 24 : 4, bottom: 3,
+                      backgroundColor: 'white', borderRadius: '50%', transition: '0.2s'
+                    }}/>
+                  </span>
+                </label>
+              </div>
+              {devBypass && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                  <button
+                    onClick={() => handleQRScan("DEV_TEST_MOCK_QR")}
+                    style={{
+                      flex: 1, padding: '10px', background: '#e65100', color: 'white',
+                      border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer',
+                      boxShadow: '0 2px 4px rgba(230, 81, 0, 0.2)'
+                    }}
+                  >
+                    ⚡ Simuler Pointage (Sans Caméra)
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Type selector */}
             <div style={cardStyle}>
               <p style={{
@@ -538,7 +596,7 @@ export default function CheckInPage() {
           border: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none',
           boxShadow: theme.palette.mode === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.07)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          padding: 32, gap: 16, width: '350px',
+          padding: 32, gap: 16, width: isMobile ? '100%' : '350px',
         }}>
           <div style={{ width: 80, height: 80, borderRadius: '50%', background: theme.palette.mode === 'dark' ? '#1E3A8A' : '#E3F2FD', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <QrCodeScannerIcon style={{ fontSize: 40, color: theme.palette.primary.main }} />

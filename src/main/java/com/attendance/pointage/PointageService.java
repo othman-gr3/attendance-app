@@ -15,6 +15,9 @@ public class PointageService {
     private final PointageRepository pointageRepository;
     private final QRCodeService qrCodeService;
 
+    @org.springframework.beans.factory.annotation.Value("${app.dev-mode:false}")
+    private boolean devMode;
+
     // Zone autorisée : Position de test temporaire (Casablanca)
     private static final double OFFICE_LAT = 33.5874216225617;
     private static final double OFFICE_LNG = -7.581843903182479;
@@ -27,29 +30,33 @@ public class PointageService {
         String formatHeure = nowTime.format(DateTimeFormatter.ofPattern("HH:mm"));
 
         // 1. Hourly slots check
-        if ("entree".equals(type)) {
-            if (nowTime.isBefore(LocalTime.of(7, 0)) || nowTime.isAfter(LocalTime.of(11, 30))) {
-                return new PointageResult("Entry check-in is only allowed between 07:00 and 11:30.", false, false, false, formatHeure);
-            }
-        } else if ("sortie".equals(type)) {
-            if (nowTime.isBefore(LocalTime.of(16, 0))) {
-                return new PointageResult("Exit check-out is only allowed after 16:00.", false, false, false, formatHeure);
+        if (!devMode) {
+            if ("entree".equals(type)) {
+                if (nowTime.isBefore(LocalTime.of(7, 0)) || nowTime.isAfter(LocalTime.of(11, 30))) {
+                    return new PointageResult("Entry check-in is only allowed between 07:00 and 11:30.", false, false, false, formatHeure);
+                }
+            } else if ("sortie".equals(type)) {
+                if (nowTime.isBefore(LocalTime.of(16, 0))) {
+                    return new PointageResult("Exit check-out is only allowed after 16:00.", false, false, false, formatHeure);
+                }
             }
         }
 
         // 2. Daily uniqueness check (only check valid pointages)
-        List<Pointage> todayPointages = pointageRepository.findByUserIdAndDate(userId, LocalDate.now().toString());
-        boolean alreadyExists = todayPointages.stream()
-                .anyMatch(p -> Boolean.TRUE.equals(p.getValide()) && type.equals(p.getType()));
-        if (alreadyExists) {
-            return new PointageResult("You have already registered a valid " + ("entree".equals(type) ? "entry" : "exit") + " check-in for today.", false, false, false, formatHeure);
+        if (!devMode) {
+            List<Pointage> todayPointages = pointageRepository.findByUserIdAndDate(userId, LocalDate.now().toString());
+            boolean alreadyExists = todayPointages.stream()
+                    .anyMatch(p -> Boolean.TRUE.equals(p.getValide()) && type.equals(p.getType()));
+            if (alreadyExists) {
+                return new PointageResult("You have already registered a valid " + ("entree".equals(type) ? "entry" : "exit") + " check-in for today.", false, false, false, formatHeure);
+            }
         }
 
         // Vérification QR code
-        boolean qrValide = qrCodeService.validateCode(qrCode);
+        boolean qrValide = devMode || qrCodeService.validateCode(qrCode);
 
         // Vérification GPS
-        boolean gpsValide = verifierZone(latitude, longitude);
+        boolean gpsValide = devMode || verifierZone(latitude, longitude);
 
         boolean valide = qrValide && gpsValide;
 
@@ -58,8 +65,8 @@ public class PointageService {
         p.setDate(LocalDate.now().toString());
         p.setHeure(formatHeure);
         p.setType(type);
-        p.setLatitude(latitude);
-        p.setLongitude(longitude);
+        p.setLatitude(latitude != null ? latitude : OFFICE_LAT);
+        p.setLongitude(longitude != null ? longitude : OFFICE_LNG);
         p.setValide(valide);
 
         pointageRepository.save(p);

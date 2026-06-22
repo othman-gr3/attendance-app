@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeModeProvider } from './context/ThemeModeContext';
+import { Box, CircularProgress } from '@mui/material';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import LoginPage from './pages/Login/LoginPage';
@@ -20,11 +21,15 @@ import ProfilePage from "./pages/Profile/ProfilePage";
 import NotificationsPage from "./pages/Notifications/NotificationsPage";
 import CalendarPage from "./pages/Calendar/CalendarPage";
 
-
-
 const RootRedirect = () => {
     const { user, loading } = useAuth();
-    if (loading) return null;
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
     if (!user) return <Navigate to="/login" replace />;
     return <Navigate to={user.role === 'ROLE_ADMIN' ? '/dashboard' : '/checkin'} replace />;
 };
@@ -36,7 +41,7 @@ export default function App() {
                 <AuthProvider>
                     <BrowserRouter>
                         <Routes>
-                            <Route path="/login" element={<LoginPage />} />
+                            <Route path="/login"    element={<LoginPage />} />
                             <Route path="/register" element={<RegisterPage />} />
 
                             {/* Walid's routes */}
@@ -93,7 +98,7 @@ export default function App() {
                                 </ProtectedRoute>
                             } />
 
-                            {/* New employee pages */}
+                            {/* Employee pages */}
                             <Route path="/profile" element={
                                 <ProtectedRoute>
                                     <Sidebar />
@@ -113,11 +118,13 @@ export default function App() {
                                 </ProtectedRoute>
                             } />
 
-                            <Route path="/" element={<RootRedirect />} />
-                            <Route path="*" element={<RootRedirect />} />
+                            <Route path="/"  element={<RootRedirect />} />
+                            <Route path="*"  element={<RootRedirect />} />
                         </Routes>
+
+                        {/* ChatBot inside BrowserRouter so it can use router hooks */}
+                        <ChatBot />
                     </BrowserRouter>
-                    <ChatBot />
                 </AuthProvider>
             </LanguageProvider>
         </ThemeModeProvider>

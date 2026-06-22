@@ -374,7 +374,6 @@ const Sidebar = () => {
                     <IconButton onClick={() => setMobileOpen(true)} style={{ color: theme.palette.text.primary }}>
                         <MenuIcon />
                     </IconButton>
-                    <div style={mobileTitleStyle}>{t('sidebar.appName')}</div>
                     <div style={mobileAvatarContainerStyle} onClick={() => navigate('/profile')}>
                         {avatarUrl ? (
                             <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />

@@ -3,6 +3,8 @@ package com.attendance.ai;
 import com.attendance.conge.CongeController;
 import com.attendance.pointage.PointageController;
 import com.attendance.stats.StatsController;
+import com.attendance.user.User;
+import com.attendance.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -22,6 +24,7 @@ public class AiController {
     private final PointageController pointageController;
     private final CongeController congeController;
     private final StatsController statsController;
+    private final UserRepository userRepository;
 
     @PostMapping("/reminder")
     public ResponseEntity<?> generateReminder(@RequestBody Map<String, Object> body) {
@@ -50,77 +53,48 @@ public class AiController {
         int currentYear = LocalDate.now().getYear();
 
         try {
-            // Pointage / attendance data
-            if (containsAny(lastMessage,
-                    "check in", "check-in", "check out", "check-out", "clock in", "clock out",
-                    "pointer", "pointage", "late", "arrived", "attendance", "history", "time", 
-                    "aujourd'hui", "today", "heure", "hour", "delay", "retard")) {
-                ResponseEntity<?> res = pointageController
-                        .getPointages(userId, today);
-                contextData.append("\nToday's attendance: ")
-                        .append(res.getBody());
-
-                // Also get full history if they ask for it
-                if (containsAny(lastMessage, "history", "historique", "all", "tout")) {
-                    ResponseEntity<?> histRes = pointageController
-                            .getPointages(userId, null);
-                    contextData.append("\nFull attendance history: ")
-                            .append(histRes.getBody());
-                }
-            }
-
-            // Leave / congé data
-            if (containsAny(lastMessage,
-                    "leave", "congé", "conge", "days off", "vacation",
-                    "absent", "approved", "status", "request", "demande", "jour", "day")) {
-                ResponseEntity<?> res = congeController
-                        .getMyConges(authentication);
-                contextData.append("\nMy leave requests: ")
-                        .append(res.getBody());
-            }
-
-            // Stats data
-            if (containsAny(lastMessage,
-                    "stats", "hours", "heures", "rate", "taux", "presence",
-                    "summary", "resume", "report", "rapport", "month", "mois", "year", "annee")) {
-                ResponseEntity<?> res = statsController
-                        .getStats(userId, currentMonth, currentYear);
-                contextData.append("\nMy stats this month: ")
-                        .append(res.getBody());
-            }
-
-            // Admin only — all employees data
             if ("ROLE_ADMIN".equals(role)) {
-                if (containsAny(lastMessage,
-                        "absent", "who", "qui", "team", "all", "everyone", "employee", "staff",
-                        "tous", "equipe", "anomaly", "anomalie",
-                        "prediction", "report", "rapport")) {
-                    ResponseEntity<?> res = statsController
-                            .getAllStats(currentMonth, currentYear, authentication);
-                    contextData.append("\nAll employees stats: ")
-                            .append(res.getBody());
-                }
+                // For Admin, always fetch the general list of stats and leave requests for the team
+                ResponseEntity<?> allStatsRes = statsController.getAllStats(currentMonth, currentYear, authentication);
+                contextData.append("\nAll employees stats for the current month: ")
+                        .append(allStatsRes.getBody());
 
-                if (containsAny(lastMessage,
-                        "anomaly", "anomalie", "late", "delay", "retard", "early exit", "sortie",
-                        "insufficiency", "insuffisance", "irregular", "problem", "probleme")) {
-                    ResponseEntity<?> res = statsController
-                            .getAnomalies(userId, currentMonth, currentYear);
-                    contextData.append("\nAnomalies detected: ")
-                            .append(res.getBody());
-                }
+                ResponseEntity<?> allCongesRes = congeController.getAllConges();
+                contextData.append("\nAll leave requests: ")
+                        .append(allCongesRes.getBody());
 
-                if (containsAny(lastMessage,
-                        "all leaves", "all conges", "tous les conges", "leaves",
-                        "pending", "en attente", "approve", "approval", "reject")) {
-                    ResponseEntity<?> res = congeController.getAllConges();
-                    contextData.append("\nAll leave requests: ")
-                            .append(res.getBody());
+                // Scan if they ask about a specific user by name or email
+                List<User> users = userRepository.findAll();
+                String queryLower = lastMessage.toLowerCase();
+                for (User u : users) {
+                    String name = u.getNom() != null ? u.getNom().toLowerCase() : "";
+                    String email = u.getEmail() != null ? u.getEmail().toLowerCase() : "";
+
+                    if ((!name.isEmpty() && queryLower.contains(name)) || (!email.isEmpty() && queryLower.contains(email))) {
+                        ResponseEntity<?> userStats = statsController.getStats(u.getId(), currentMonth, currentYear);
+                        ResponseEntity<?> userAnomalies = statsController.getAnomalies(u.getId(), currentMonth, currentYear);
+                        ResponseEntity<?> userPointages = pointageController.getPointages(u.getId(), today);
+
+                        contextData.append("\nDetailed Stats for ").append(u.getNom()).append(": ").append(userStats.getBody());
+                        contextData.append("\nAnomalies for ").append(u.getNom()).append(": ").append(userAnomalies.getBody());
+                        contextData.append("\nToday's Attendance for ").append(u.getNom()).append(": ").append(userPointages.getBody());
+                    }
                 }
+            } else {
+                // For standard Employee, always load their complete personal data context
+                ResponseEntity<?> myStats = statsController.getStats(userId, currentMonth, currentYear);
+                ResponseEntity<?> myAnomalies = statsController.getAnomalies(userId, currentMonth, currentYear);
+                ResponseEntity<?> myConges = congeController.getMyConges(authentication);
+                ResponseEntity<?> myPointages = pointageController.getPointages(userId, today);
+
+                contextData.append("\nMy stats this month: ").append(myStats.getBody());
+                contextData.append("\nMy anomalies this month: ").append(myAnomalies.getBody());
+                contextData.append("\nMy leave requests: ").append(myConges.getBody());
+                contextData.append("\nMy attendance today: ").append(myPointages.getBody());
             }
 
         } catch (Exception e) {
-            System.out.println("Data fetch error: " + e.getMessage());
+            System.out.println("Chatbot Data fetch error: " + e.getMessage());
         }
 
         // Build full prompt with real data
@@ -131,14 +105,5 @@ public class AiController {
 
         String response = aiService.chat(messages, fullSystemPrompt);
         return ResponseEntity.ok(Map.of("message", response));
-    }
-
-    private boolean containsAny(String text, String... keywords) {
-        if (text == null) return false;
-        String lower = text.toLowerCase();
-        for (String kw : keywords) {
-            if (lower.contains(kw)) return true;
-        }
-        return false;
     }
 }

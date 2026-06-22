@@ -28,7 +28,7 @@ public class AiService {
         );
 
         Map<String, Object> requestBody = Map.of(
-                "model", "nvidia/llama-nemotron-rerank-vl-1b-v2:free",
+                "model", "google/gemma-2-9b-it:free",
                 "max_tokens", 300,
                 "messages", List.of(
                         Map.of("role", "user", "content", prompt)
@@ -80,7 +80,7 @@ public class AiService {
         }
 
         Map<String, Object> requestBody = Map.of(
-                "model", "nex-agi/nex-n2-pro:free",
+                "model", "google/gemma-2-9b-it:free",
                 "max_tokens", 500,
                 "messages", formattedMessages
         );

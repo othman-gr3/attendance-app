@@ -191,6 +191,8 @@ Create `frontend/.env`:
 ```env
 HTTPS=false
 PORT=3000
+HOST=0.0.0.0
+DANGEROUSLY_DISABLE_HOST_CHECK=true
 ```
 
 Run the frontend:
@@ -200,6 +202,40 @@ npm start
 ```
 
 The app will open at `http://localhost:3000`
+
+---
+
+### 📱 4. Mobile Device Testing (Camera & Geolocation)
+
+To test the check-in camera and GPS on real mobile devices, browsers require a secure connection (HTTPS) or `localhost`. 
+
+The project is configured with an **API Proxy** inside the React dev server, meaning you only need to expose the frontend port (3000) using a secure tunnel like `localtunnel`.
+
+#### Setup & Run:
+
+1. **Configure `.env` for Tunnels**:
+   Ensure `frontend/.env` contains the host check bypass variable to avoid "Invalid Host header" errors:
+   ```env
+   HTTPS=false
+   PORT=3000
+   HOST=0.0.0.0
+   DANGEROUSLY_DISABLE_HOST_CHECK=true
+   ```
+
+2. **Start the applications**:
+   Make sure the backend is running on port `8080` and the frontend is running on port `3000`.
+
+3. **Expose the Frontend Securely**:
+   Open a new terminal and run:
+   ```bash
+   npx localtunnel --port 3000
+   ```
+   *Note: If prompted to install `localtunnel`, type `y`.*
+
+4. **Access on your Phone**:
+   - Open the generated `https://xxxx.loca.lt` URL in your mobile browser.
+   - Enter your public IP address (shown in the terminal where you ran `localtunnel`) if prompted by the localtunnel splash screen.
+   - Logging in, scanning QR codes, and geolocation check-ins will work perfectly!
 
 ---
 

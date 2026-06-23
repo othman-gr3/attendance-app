@@ -18,9 +18,9 @@ public class PointageService {
     @org.springframework.beans.factory.annotation.Value("${app.dev-mode:false}")
     private boolean devMode;
 
-    // Zone autorisée : Position de test temporaire (Casablanca)
-    private static final double OFFICE_LAT = 33.5874216225617;
-    private static final double OFFICE_LNG = -7.581843903182479;
+    // Zone autorisée : Ecole (Soutenance)
+    private static final double OFFICE_LAT = 33.59277446026941;
+    private static final double OFFICE_LNG = -7.627531335827666;
     private static final double MAX_DISTANCE_KM = 0.2; // 200 mètres
 
     public PointageResult enregistrerPointage(String userId, String type,

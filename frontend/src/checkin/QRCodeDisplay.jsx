@@ -326,12 +326,13 @@ export default function QRCodeDisplay() {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                   <span style={{ fontSize: 12, color: theme.palette.text.secondary }}>{t('kiosk.zoneLat')}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: theme.palette.text.primary, fontVariantNumeric: 'tabular-nums' }}>33.587422</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: theme.palette.text.primary, fontVariantNumeric: 'tabular-nums' }}>33.592774</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: 12, color: theme.palette.text.secondary }}>{t('kiosk.zoneLng')}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: theme.palette.text.primary, fontVariantNumeric: 'tabular-nums' }}>-7.581844</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: theme.palette.text.primary, fontVariantNumeric: 'tabular-nums' }}>-7.627531</span>
                 </div>
+
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: theme.palette.mode === 'dark' ? '#064E3B' : '#E0F2F1', color: theme.palette.mode === 'dark' ? '#34D399' : '#00796B', padding: '10px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500 }}>

@@ -386,7 +386,7 @@ export default function CheckInPage() {
                     onChange={(e) => {
                       setDevBypass(e.target.checked);
                       if (e.target.checked && !location) {
-                        setLocation({ lat: 33.5874, lng: -7.5818 }); // Mock Casablanca location
+                        setLocation({ lat: 33.59277446026941, lng: -7.627531335827666 }); // Mock School location
                       }
                     }}
                     style={{ opacity: 0, width: 0, height: 0 }}

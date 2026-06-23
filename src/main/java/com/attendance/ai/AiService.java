@@ -28,8 +28,8 @@ public class AiService {
         );
 
         Map<String, Object> requestBody = Map.of(
-                "model", "google/gemma-2-9b-it:free",
-                "max_tokens", 300,
+                "model", "cohere/north-mini-code:free",
+                "max_tokens", 1000,
                 "messages", List.of(
                         Map.of("role", "user", "content", prompt)
                 )
@@ -51,7 +51,12 @@ public class AiService {
                     (List<Map<String, Object>>) response.get("choices");
             Map<String, Object> message =
                     (Map<String, Object>) choices.get(0).get("message");
-            return (String) message.get("content");
+            String content = (String) message.get("content");
+            if (content == null) {
+                System.out.println("OpenRouter reminder response had null content. Full response: " + response);
+                return "Hi " + nom + ", we noticed you were absent. Please let us know if everything is okay. Thank you.";
+            }
+            return content;
 
         } catch (Exception e) {
             System.out.println("AI error: " + e.getMessage());
@@ -80,8 +85,8 @@ public class AiService {
         }
 
         Map<String, Object> requestBody = Map.of(
-                "model", "google/gemma-2-9b-it:free",
-                "max_tokens", 500,
+                "model", "cohere/north-mini-code:free",
+                "max_tokens", 2000,
                 "messages", formattedMessages
         );
 
@@ -101,7 +106,12 @@ public class AiService {
                     (List<Map<String, Object>>) response.get("choices");
             Map<String, Object> message =
                     (Map<String, Object>) choices.get(0).get("message");
-            return (String) message.get("content");
+            String content = (String) message.get("content");
+            if (content == null) {
+                System.out.println("OpenRouter chat response had null content. Full response: " + response);
+                return "Désolé, je n'ai pas pu obtenir de réponse de l'assistant IA. Veuillez réessayer.";
+            }
+            return content;
 
         } catch (Exception e) {
             String errorBody = "";

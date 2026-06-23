@@ -73,11 +73,11 @@ public class AiController {
                     if ((!name.isEmpty() && queryLower.contains(name)) || (!email.isEmpty() && queryLower.contains(email))) {
                         ResponseEntity<?> userStats = statsController.getStats(u.getId(), currentMonth, currentYear);
                         ResponseEntity<?> userAnomalies = statsController.getAnomalies(u.getId(), currentMonth, currentYear);
-                        ResponseEntity<?> userPointages = pointageController.getPointages(u.getId(), today);
+                        ResponseEntity<?> userPointages = pointageController.getPointages(u.getId(), null);
 
                         contextData.append("\nDetailed Stats for ").append(u.getNom()).append(": ").append(userStats.getBody());
                         contextData.append("\nAnomalies for ").append(u.getNom()).append(": ").append(userAnomalies.getBody());
-                        contextData.append("\nToday's Attendance for ").append(u.getNom()).append(": ").append(userPointages.getBody());
+                        contextData.append("\nAttendance History for ").append(u.getNom()).append(": ").append(userPointages.getBody());
                     }
                 }
             } else {
@@ -85,12 +85,12 @@ public class AiController {
                 ResponseEntity<?> myStats = statsController.getStats(userId, currentMonth, currentYear);
                 ResponseEntity<?> myAnomalies = statsController.getAnomalies(userId, currentMonth, currentYear);
                 ResponseEntity<?> myConges = congeController.getMyConges(authentication);
-                ResponseEntity<?> myPointages = pointageController.getPointages(userId, today);
+                ResponseEntity<?> myPointages = pointageController.getPointages(userId, null);
 
                 contextData.append("\nMy stats this month: ").append(myStats.getBody());
                 contextData.append("\nMy anomalies this month: ").append(myAnomalies.getBody());
                 contextData.append("\nMy leave requests: ").append(myConges.getBody());
-                contextData.append("\nMy attendance today: ").append(myPointages.getBody());
+                contextData.append("\nMy attendance history: ").append(myPointages.getBody());
             }
 
         } catch (Exception e) {
@@ -104,6 +104,6 @@ public class AiController {
                 + contextData);
 
         String response = aiService.chat(messages, fullSystemPrompt);
-        return ResponseEntity.ok(Map.of("message", response));
+        return ResponseEntity.ok(Map.of("message", response != null ? response : "Désolé, l'assistant IA est indisponible."));
     }
 }

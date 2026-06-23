@@ -74,16 +74,16 @@ export default function LoginPage() {
                 display: { xs: 'none', md: 'flex' },
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: '#071440',  /* matches the image's dark navy edges */
+                backgroundColor: '#071440',
             }}>
                 <Box
                     component="img"
-                    src="/login_page.jpeg"
+                    src="/loginpage22222.jpeg"
                     alt="IN – your space, your people"
                     sx={{
                         width: '100%',
                         height: '100%',
-                        objectFit: 'contain',
+                        objectFit: 'cover',
                         display: 'block',
                     }}
                 />
@@ -108,8 +108,21 @@ export default function LoginPage() {
                     gap: '0px',
                     px: '24px',
                 }}>
+                    {/* Logo */}
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: '16px', mb: '16px' }}>
+                        <Box
+                            component="img"
+                            src="/inlogo2.jpeg"
+                            alt="Logo"
+                            sx={{
+                                height: '56px',
+                                objectFit: 'contain',
+                            }}
+                        />
+                    </Box>
+
                     {/* Heading */}
-                    <Box sx={{ mb: '28px', mt: '16px' }}>
+                    <Box sx={{ mb: '28px' }}>
                         <Typography sx={{
                             fontFamily: "'Inter', sans-serif",
                             fontWeight: 700,
